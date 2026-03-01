@@ -1,0 +1,17 @@
+server:
+  host: 0.0.0.0
+  port: 8081
+  debug: true
+
+database:
+  uri: mysql+pymysql://root:root@127.0.0.1:3306/secondhand_books?charset=utf8mb4
+  track_modifications: false
+
+jwt:
+  secret_key: jwt-secret-key
+  access_token_expires: 86400  # 24 hours
+
+upload:
+  max_content_length: 314572800  # 300MB
+
+secret_key: dev-secret-key-change-in-production
