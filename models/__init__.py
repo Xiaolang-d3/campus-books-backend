@@ -62,6 +62,7 @@ class Ershoushuji(db.Model):
     shangjiazhanghao = db.Column(db.String(200), comment='商家账号')
     shangjiaxingming = db.Column(db.String(200), comment='商家姓名')
     price = db.Column(db.Float, nullable=False, comment='价格')
+    kucun = db.Column(db.Integer, default=1, comment='库存数量')
 
 
 class Orders(db.Model):

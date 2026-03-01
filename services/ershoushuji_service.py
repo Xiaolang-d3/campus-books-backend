@@ -40,6 +40,9 @@ class ErshoushujiService:
     @staticmethod
     def save(data):
         data['id'] = generate_id()
+        # 如果没有设置库存，默认为1
+        if 'kucun' not in data or data['kucun'] is None:
+            data['kucun'] = 1
         book = Ershoushuji(**data)
         db.session.add(book)
         db.session.commit()
@@ -59,3 +62,35 @@ class ErshoushujiService:
     def delete(ids):
         Ershoushuji.query.filter(Ershoushuji.id.in_(ids)).delete(synchronize_session=False)
         db.session.commit()
+
+    @staticmethod
+    def check_stock(book_id, quantity):
+        """检查库存是否充足"""
+        book = Ershoushuji.query.get(book_id)
+        if not book:
+            return False, '书籍不存在'
+        if book.kucun < quantity:
+            return False, f'库存不足，当前库存：{book.kucun}'
+        return True, None
+
+    @staticmethod
+    def reduce_stock(book_id, quantity):
+        """减少库存"""
+        book = Ershoushuji.query.get(book_id)
+        if not book:
+            return False, '书籍不存在'
+        if book.kucun < quantity:
+            return False, f'库存不足，当前库存：{book.kucun}'
+        book.kucun -= quantity
+        db.session.commit()
+        return True, None
+
+    @staticmethod
+    def increase_stock(book_id, quantity):
+        """增加库存（退款时使用）"""
+        book = Ershoushuji.query.get(book_id)
+        if not book:
+            return False, '书籍不存在'
+        book.kucun += quantity
+        db.session.commit()
+        return True, None

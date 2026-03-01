@@ -44,6 +44,25 @@ def create_database():
         conn.close()
 
 
+def add_kucun_column_if_not_exists():
+    """为已存在的表添加库存字段"""
+    conn = get_connection(database=DB_NAME)
+    try:
+        with conn.cursor() as cur:
+            # 检查 kucun 字段是否存在
+            cur.execute("SHOW COLUMNS FROM `ershoushuji` LIKE 'kucun'")
+            if not cur.fetchone():
+                print("[MIGRATE] 添加库存字段...")
+                cur.execute("ALTER TABLE `ershoushuji` ADD COLUMN `kucun` int DEFAULT 1 COMMENT '库存数量' AFTER `price`")
+                cur.execute("UPDATE `ershoushuji` SET `kucun` = 1 WHERE `kucun` IS NULL")
+                conn.commit()
+                print("[OK] 库存字段已添加")
+    except Exception as e:
+        print(f"[WARN] 添加库存字段失败: {e}")
+    finally:
+        conn.close()
+
+
 def create_tables():
     conn = get_connection(database=DB_NAME)
     try:
@@ -106,6 +125,7 @@ def create_tables():
                     `shangjiazhanghao` varchar(200) COMMENT '商家账号',
                     `shangjiaxingming` varchar(200) COMMENT '商家姓名',
                     `price` float NOT NULL COMMENT '价格',
+                    `kucun` int DEFAULT 1 COMMENT '库存数量',
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='二手书籍'""",
 
@@ -299,6 +319,7 @@ def migrate():
     print("========== 开始数据库迁移 ==========")
     create_database()
     create_tables()
+    add_kucun_column_if_not_exists()  # 为已存在的表添加库存字段
     seed_data()
     print("========== 迁移完成 ==========")
 

@@ -1,5 +1,6 @@
 from models import db, Cart
 from utils import model_to_dict, paginate_query, apply_filters, generate_id
+from services.ershoushuji_service import ErshoushujiService
 
 
 class CartService:
@@ -23,6 +24,14 @@ class CartService:
 
     @staticmethod
     def save(data, identity=None):
+        # 检查库存
+        goodid = data.get('goodid')
+        buynumber = data.get('buynumber', 1)
+        if goodid:
+            ok, err = ErshoushujiService.check_stock(goodid, buynumber)
+            if not ok:
+                raise ValueError(err)
+
         data['id'] = generate_id()
         if identity:
             data['userid'] = identity['id']
@@ -35,6 +44,14 @@ class CartService:
         cart = Cart.query.get(data.get('id'))
         if not cart:
             return False, '购物车项不存在'
+
+        # 如果修改了购买数量，需要检查库存
+        new_buynumber = data.get('buynumber')
+        if new_buynumber and cart.goodid:
+            ok, err = ErshoushujiService.check_stock(cart.goodid, new_buynumber)
+            if not ok:
+                return False, err
+
         for k, v in data.items():
             if hasattr(cart, k):
                 setattr(cart, k, v)
