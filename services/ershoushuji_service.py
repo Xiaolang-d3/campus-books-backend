@@ -1,8 +1,18 @@
-from models import db, Ershoushuji
-from utils import model_to_dict, paginate_query, apply_filters, generate_id
+from models import Ershoushuji, db
+from utils import apply_filters, generate_id, model_to_dict, paginate_query
 
 
 class ErshoushujiService:
+    REQUIRED_FIELDS = (
+        'shujimingcheng',
+        'shujifenlei',
+        'xueyuan',
+        'zhuanye',
+        'kecheng',
+        'banben',
+        'price',
+    )
+
     @staticmethod
     def _apply_price_filter(query, params):
         pricestart = params.get('pricestart')
@@ -14,22 +24,48 @@ class ErshoushujiService:
         return query
 
     @staticmethod
+    def _validate_payload(data):
+        data = data or {}
+        field_names = {
+            'shujimingcheng': '书籍名称',
+            'shujifenlei': '书籍分类',
+            'xueyuan': '学院',
+            'zhuanye': '专业',
+            'kecheng': '课程',
+            'banben': '版本',
+            'price': '价格',
+        }
+        for field in ErshoushujiService.REQUIRED_FIELDS:
+            value = data.get(field)
+            if value is None or str(value).strip() == '':
+                return False, f'{field_names[field]}不能为空'
+        return True, None
+
+    @staticmethod
     def page(params, identity=None):
         query = Ershoushuji.query
         if identity and identity.get('tableName') == 'shangjia':
             query = query.filter_by(shangjiazhanghao=identity['username'])
-        query = apply_filters(Ershoushuji, query, params,
-                              like_fields=['shujibianhao', 'shujimingcheng', 'shujizuozhe'],
-                              eq_fields=['shujifenlei', 'xinjiuchengdu', 'shangjiazhanghao'])
+        query = apply_filters(
+            Ershoushuji,
+            query,
+            params,
+            like_fields=['shujibianhao', 'shujimingcheng', 'shujizuozhe'],
+            eq_fields=['shujifenlei', 'xinjiuchengdu', 'shangjiazhanghao', 'xueyuan', 'zhuanye', 'kecheng', 'banben'],
+        )
         query = ErshoushujiService._apply_price_filter(query, params)
         return paginate_query(Ershoushuji, query, params)
 
     @staticmethod
     def list_all(params):
         query = Ershoushuji.query
-        query = apply_filters(Ershoushuji, query, params,
-                              like_fields=['shujibianhao', 'shujimingcheng', 'shujizuozhe'],
-                              eq_fields=['shujifenlei', 'xinjiuchengdu'])
+        query = apply_filters(
+            Ershoushuji,
+            query,
+            params,
+            like_fields=['shujibianhao', 'shujimingcheng', 'shujizuozhe'],
+            eq_fields=['shujifenlei', 'xinjiuchengdu', 'xueyuan', 'zhuanye', 'kecheng', 'banben'],
+        )
         query = ErshoushujiService._apply_price_filter(query, params)
         return paginate_query(Ershoushuji, query, params)
 
@@ -39,11 +75,15 @@ class ErshoushujiService:
 
     @staticmethod
     def save(data):
-        data['id'] = generate_id()
-        # 如果没有设置库存，默认为1
-        if 'kucun' not in data or data['kucun'] is None:
-            data['kucun'] = 1
-        book = Ershoushuji(**data)
+        ok, err = ErshoushujiService._validate_payload(data)
+        if not ok:
+            raise ValueError(err)
+
+        payload = dict(data)
+        payload['id'] = generate_id()
+        if 'kucun' not in payload or payload['kucun'] is None:
+            payload['kucun'] = 1
+        book = Ershoushuji(**payload)
         db.session.add(book)
         db.session.commit()
 
@@ -52,6 +92,11 @@ class ErshoushujiService:
         book = Ershoushuji.query.get(data.get('id'))
         if not book:
             return False, '书籍不存在'
+
+        ok, err = ErshoushujiService._validate_payload(data)
+        if not ok:
+            return False, err
+
         for k, v in data.items():
             if hasattr(book, k):
                 setattr(book, k, v)
@@ -65,7 +110,6 @@ class ErshoushujiService:
 
     @staticmethod
     def check_stock(book_id, quantity):
-        """检查库存是否充足"""
         book = Ershoushuji.query.get(book_id)
         if not book:
             return False, '书籍不存在'
@@ -75,7 +119,6 @@ class ErshoushujiService:
 
     @staticmethod
     def reduce_stock(book_id, quantity):
-        """减少库存"""
         book = Ershoushuji.query.get(book_id)
         if not book:
             return False, '书籍不存在'
@@ -87,7 +130,6 @@ class ErshoushujiService:
 
     @staticmethod
     def increase_stock(book_id, quantity):
-        """增加库存（退款时使用）"""
         book = Ershoushuji.query.get(book_id)
         if not book:
             return False, '书籍不存在'

@@ -32,14 +32,20 @@ def detail(id):
 @ershoushuji_bp.route('/save', methods=['POST'])
 @login_required_custom
 def save():
-    ErshoushujiService.save(request.json)
-    return R_ok()
+    try:
+        ErshoushujiService.save(request.json)
+        return R_ok()
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @ershoushuji_bp.route('/add', methods=['POST'])
 def add():
-    ErshoushujiService.save(request.json)
-    return R_ok()
+    try:
+        ErshoushujiService.save(request.json)
+        return R_ok()
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @ershoushuji_bp.route('/update', methods=['POST'])

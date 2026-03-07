@@ -109,6 +109,10 @@ def create_tables():
           `shujifengmian` text COMMENT '书籍封面',
           `shujizuozhe` varchar(200) COMMENT '书籍作者',
           `shujifenlei` varchar(200) COMMENT '书籍分类',
+          `xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院',
+          `zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业',
+          `kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程',
+          `banben` varchar(200) NOT NULL DEFAULT '' COMMENT '版本',
           `shujijianjie` text COMMENT '书籍简介',
           `xinjiuchengdu` varchar(200) COMMENT '新旧程度',
           `chubanshe` varchar(200) COMMENT '出版社',
@@ -273,6 +277,10 @@ def ensure_column_exists(table_name, column_name, ddl):
 
 def patch_existing_schema():
     ensure_column_exists('ershoushuji', 'kucun', "`kucun` int DEFAULT 1 COMMENT '库存数量' AFTER `price`")
+    ensure_column_exists('ershoushuji', 'xueyuan', "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `shujifenlei`")
+    ensure_column_exists('ershoushuji', 'zhuanye', "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`")
+    ensure_column_exists('ershoushuji', 'kecheng', "`kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程' AFTER `zhuanye`")
+    ensure_column_exists('ershoushuji', 'banben', "`banben` varchar(200) NOT NULL DEFAULT '' COMMENT '版本' AFTER `kecheng`")
     ensure_column_exists('yonghu', 'xueyuan', "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `dianhuahaoma`")
     ensure_column_exists('yonghu', 'zhuanye', "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`")
     ensure_column_exists('yonghu', 'nianji', "`nianji` varchar(200) NOT NULL DEFAULT '' COMMENT '年级' AFTER `zhuanye`")
