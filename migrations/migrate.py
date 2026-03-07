@@ -1,5 +1,5 @@
 """
-Database bootstrap and lightweight schema migration helpers.
+Database bootstrap and schema patch helpers.
 """
 
 import os
@@ -11,7 +11,11 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.yaml')
+CONFIG_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'config',
+    'config.yaml',
+)
 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
     CONFIG = yaml.safe_load(f)
 
@@ -44,7 +48,7 @@ def create_database():
                 "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
             )
         conn.commit()
-        print(f"[OK] 数据库 '{DB_NAME}' 已就绪")
+        print(f"[OK] 数据库 `{DB_NAME}` 已就绪")
     finally:
         conn.close()
 
@@ -76,21 +80,7 @@ def create_tables():
           `nianji` varchar(200) NOT NULL DEFAULT '' COMMENT '年级',
           `money` float DEFAULT 0 COMMENT '余额',
           PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户'
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS `shangjia` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `shangjiaxingming` varchar(200) NOT NULL COMMENT '商家姓名',
-          `shangjiazhanghao` varchar(200) NOT NULL UNIQUE COMMENT '商家账号',
-          `mima` varchar(200) NOT NULL COMMENT '密码',
-          `xingbie` varchar(200) DEFAULT NULL COMMENT '性别',
-          `touxiang` text COMMENT '头像',
-          `dianhuahaoma` varchar(200) DEFAULT NULL COMMENT '电话号码',
-          `money` float DEFAULT 0 COMMENT '余额',
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商家'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='校园用户'
         """,
         """
         CREATE TABLE IF NOT EXISTS `shujifenlei` (
@@ -122,8 +112,9 @@ def create_tables():
           `xinjiuchengdu` varchar(200) COMMENT '新旧程度',
           `chubanshe` varchar(200) COMMENT '出版社',
           `shangjiariqi` date COMMENT '上架日期',
-          `shangjiazhanghao` varchar(200) COMMENT '商家账号',
-          `shangjiaxingming` varchar(200) COMMENT '商家姓名',
+          `faburenid` bigint NOT NULL DEFAULT 0 COMMENT '发布人ID',
+          `faburenzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人账号',
+          `faburenxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人姓名',
           `price` float NOT NULL COMMENT '价格',
           `kucun` int DEFAULT 1 COMMENT '库存数量',
           PRIMARY KEY (`id`)
@@ -135,8 +126,11 @@ def create_tables():
           `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
           `orderid` varchar(200) NOT NULL UNIQUE COMMENT '订单编号',
           `tablename` varchar(200) DEFAULT 'ershoushuji' COMMENT '商品表名',
-          `userid` bigint NOT NULL COMMENT '用户id',
-          `goodid` bigint NOT NULL COMMENT '商品id',
+          `userid` bigint NOT NULL COMMENT '买家ID',
+          `sellerid` bigint NOT NULL DEFAULT 0 COMMENT '卖家ID',
+          `sellerzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家账号',
+          `sellerxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家姓名',
+          `goodid` bigint NOT NULL COMMENT '商品ID',
           `goodname` varchar(200) COMMENT '商品名称',
           `picture` text COMMENT '商品图片',
           `buynumber` int NOT NULL COMMENT '购买数量',
@@ -159,8 +153,8 @@ def create_tables():
           `id` bigint NOT NULL AUTO_INCREMENT,
           `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
           `tablename` varchar(200) DEFAULT 'ershoushuji' COMMENT '商品表名',
-          `userid` bigint NOT NULL COMMENT '用户id',
-          `goodid` bigint NOT NULL COMMENT '商品id',
+          `userid` bigint NOT NULL COMMENT '用户ID',
+          `goodid` bigint NOT NULL COMMENT '商品ID',
           `goodname` varchar(200) COMMENT '商品名称',
           `picture` text COMMENT '图片',
           `buynumber` int NOT NULL COMMENT '购买数量',
@@ -173,7 +167,7 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS `address` (
           `id` bigint NOT NULL AUTO_INCREMENT,
           `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `userid` bigint NOT NULL COMMENT '用户id',
+          `userid` bigint NOT NULL COMMENT '用户ID',
           `address` varchar(200) NOT NULL COMMENT '地址',
           `name` varchar(200) NOT NULL COMMENT '收货人',
           `phone` varchar(200) NOT NULL COMMENT '电话',
@@ -222,8 +216,8 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS `discussershoushuji` (
           `id` bigint NOT NULL AUTO_INCREMENT,
           `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `refid` bigint NOT NULL COMMENT '关联表id',
-          `userid` bigint NOT NULL COMMENT '用户id',
+          `refid` bigint NOT NULL COMMENT '关联表ID',
+          `userid` bigint NOT NULL COMMENT '用户ID',
           `avatarurl` text COMMENT '头像',
           `nickname` varchar(200) COMMENT '用户昵称',
           `content` text NOT NULL COMMENT '评论内容',
@@ -235,8 +229,8 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS `storeup` (
           `id` bigint NOT NULL AUTO_INCREMENT,
           `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `userid` bigint NOT NULL COMMENT '用户id',
-          `refid` bigint COMMENT '商品id',
+          `userid` bigint NOT NULL COMMENT '用户ID',
+          `refid` bigint COMMENT '商品ID',
           `tablename` varchar(200) COMMENT '表名',
           `name` varchar(200) NOT NULL COMMENT '名称',
           `picture` text NOT NULL COMMENT '图片',
@@ -273,7 +267,7 @@ def ensure_column_exists(table_name, column_name, ddl):
         with conn.cursor() as cur:
             cur.execute(f"SHOW COLUMNS FROM `{table_name}` LIKE %s", (column_name,))
             if not cur.fetchone():
-                print(f"[MIGRATE] 添加字段 {table_name}.{column_name} ...")
+                print(f"[MIGRATE] 添加字段 {table_name}.{column_name}")
                 cur.execute(f"ALTER TABLE `{table_name}` ADD COLUMN {ddl}")
         conn.commit()
     finally:
@@ -281,19 +275,39 @@ def ensure_column_exists(table_name, column_name, ddl):
 
 
 def patch_existing_schema():
-    ensure_column_exists('ershoushuji', 'kucun', "`kucun` int DEFAULT 1 COMMENT '库存数量' AFTER `price`")
-    ensure_column_exists('ershoushuji', 'isbn', "`isbn` varchar(50) NOT NULL DEFAULT '' COMMENT 'ISBN' AFTER `shujizuozhe`")
-    ensure_column_exists('ershoushuji', 'kechengbianhao', "`kechengbianhao` varchar(100) NOT NULL DEFAULT '' COMMENT '课程编号' AFTER `isbn`")
-    ensure_column_exists('ershoushuji', 'jiaocaibanben', "`jiaocaibanben` varchar(200) NOT NULL DEFAULT '' COMMENT '教材版本' AFTER `kechengbianhao`")
-    ensure_column_exists('ershoushuji', 'shiyongzhuanye', "`shiyongzhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '适用专业' AFTER `jiaocaibanben`")
-    ensure_column_exists('ershoushuji', 'shiyongkecheng', "`shiyongkecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '适用课程' AFTER `shiyongzhuanye`")
-    ensure_column_exists('ershoushuji', 'xueyuan', "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `shujifenlei`")
-    ensure_column_exists('ershoushuji', 'zhuanye', "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`")
-    ensure_column_exists('ershoushuji', 'kecheng', "`kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程' AFTER `zhuanye`")
-    ensure_column_exists('ershoushuji', 'banben', "`banben` varchar(200) NOT NULL DEFAULT '' COMMENT '版本' AFTER `kecheng`")
-    ensure_column_exists('yonghu', 'xueyuan', "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `dianhuahaoma`")
-    ensure_column_exists('yonghu', 'zhuanye', "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`")
-    ensure_column_exists('yonghu', 'nianji', "`nianji` varchar(200) NOT NULL DEFAULT '' COMMENT '年级' AFTER `zhuanye`")
+    book_columns = {
+        'isbn': "`isbn` varchar(50) NOT NULL DEFAULT '' COMMENT 'ISBN' AFTER `shujizuozhe`",
+        'kechengbianhao': "`kechengbianhao` varchar(100) NOT NULL DEFAULT '' COMMENT '课程编号' AFTER `isbn`",
+        'jiaocaibanben': "`jiaocaibanben` varchar(200) NOT NULL DEFAULT '' COMMENT '教材版本' AFTER `kechengbianhao`",
+        'shiyongzhuanye': "`shiyongzhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '适用专业' AFTER `jiaocaibanben`",
+        'shiyongkecheng': "`shiyongkecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '适用课程' AFTER `shiyongzhuanye`",
+        'xueyuan': "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `shujifenlei`",
+        'zhuanye': "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`",
+        'kecheng': "`kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程' AFTER `zhuanye`",
+        'banben': "`banben` varchar(200) NOT NULL DEFAULT '' COMMENT '版本' AFTER `kecheng`",
+        'faburenid': "`faburenid` bigint NOT NULL DEFAULT 0 COMMENT '发布人ID' AFTER `shangjiariqi`",
+        'faburenzhanghao': "`faburenzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人账号' AFTER `faburenid`",
+        'faburenxingming': "`faburenxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人姓名' AFTER `faburenzhanghao`",
+        'kucun': "`kucun` int DEFAULT 1 COMMENT '库存数量' AFTER `price`",
+    }
+    for name, ddl in book_columns.items():
+        ensure_column_exists('ershoushuji', name, ddl)
+
+    order_columns = {
+        'sellerid': "`sellerid` bigint NOT NULL DEFAULT 0 COMMENT '卖家ID' AFTER `userid`",
+        'sellerzhanghao': "`sellerzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家账号' AFTER `sellerid`",
+        'sellerxingming': "`sellerxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家姓名' AFTER `sellerzhanghao`",
+    }
+    for name, ddl in order_columns.items():
+        ensure_column_exists('orders', name, ddl)
+
+    user_columns = {
+        'xueyuan': "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `dianhuahaoma`",
+        'zhuanye': "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`",
+        'nianji': "`nianji` varchar(200) NOT NULL DEFAULT '' COMMENT '年级' AFTER `zhuanye`",
+    }
+    for name, ddl in user_columns.items():
+        ensure_column_exists('yonghu', name, ddl)
 
 
 def seed_data():
@@ -305,49 +319,47 @@ def seed_data():
                 print('[SKIP] 初始数据已存在，跳过')
                 return
 
-            cur.execute("INSERT INTO `users` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')")
-
             cur.execute(
-                "INSERT INTO `yonghu` "
-                "(`yonghuzhanghao`, `yonghuxingming`, `mima`, `xingbie`, `dianhuahaoma`, `xueyuan`, `zhuanye`, `nianji`, `money`) "
-                "VALUES ('20220001', '张三', '123456', '男', '13800138001', '计算机学院', '软件工程', '2022级', 1000)"
+                "INSERT INTO `users` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')"
             )
             cur.execute(
                 "INSERT INTO `yonghu` "
                 "(`yonghuzhanghao`, `yonghuxingming`, `mima`, `xingbie`, `dianhuahaoma`, `xueyuan`, `zhuanye`, `nianji`, `money`) "
-                "VALUES ('20220002', '李四', '123456', '女', '13800138002', '文学院', '汉语言文学', '2022级', 500)"
-            )
-
-            cur.execute(
-                "INSERT INTO `shangjia` (`shangjiazhanghao`, `shangjiaxingming`, `mima`, `xingbie`, `dianhuahaoma`, `money`) "
-                "VALUES ('shop1', '书店老板', '123456', '男', '13900139001', 5000)"
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                ('20220001', '张三', '123456', '男', '13800138001', '计算机学院', '软件工程', '2022级', 1000),
             )
             cur.execute(
-                "INSERT INTO `shangjia` (`shangjiazhanghao`, `shangjiaxingming`, `mima`, `xingbie`, `dianhuahaoma`, `money`) "
-                "VALUES ('shop2', '二手书商', '123456', '女', '13900139002', 3000)"
+                "INSERT INTO `yonghu` "
+                "(`yonghuzhanghao`, `yonghuxingming`, `mima`, `xingbie`, `dianhuahaoma`, `xueyuan`, `zhuanye`, `nianji`, `money`) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                ('20220002', '李四', '123456', '女', '13800138002', '经济管理学院', '会计学', '2021级', 500),
             )
 
             for category in ['文学', '计算机', '历史', '哲学', '经济', '教育', '艺术', '科学']:
                 cur.execute("INSERT INTO `shujifenlei` (`shujifenlei`) VALUES (%s)", (category,))
 
-            for name, value in [('picture1', 'picture1.jpg'), ('picture2', 'picture2.jpg'), ('picture3', 'picture3.jpg')]:
+            for name, value in [
+                ('picture1', 'upload/picture1.jpg'),
+                ('picture2', 'upload/picture2.jpg'),
+                ('picture3', 'upload/picture3.jpg'),
+            ]:
                 cur.execute("INSERT INTO `config` (`name`, `value`) VALUES (%s, %s)", (name, value))
 
             cur.execute(
                 "INSERT INTO `aboutus` (`title`, `subtitle`, `content`) VALUES (%s, %s, %s)",
-                ('关于我们', 'ABOUT US', '二手书籍交易平台，致力于为用户提供便捷的二手书籍买卖服务。'),
+                ('关于我们', 'ABOUT US', '校园二手专业书平台，服务校内教材流转与供需匹配。'),
             )
             cur.execute(
                 "INSERT INTO `systemintro` (`title`, `subtitle`, `content`) VALUES (%s, %s, %s)",
-                ('系统简介', 'SYSTEM INTRODUCTION', '本系统是一个二手书籍在线交易平台，支持浏览、购买和管理书籍信息。'),
+                ('系统简介', 'SYSTEM INTRODUCTION', '系统支持校园用户发布、浏览、购买和管理二手专业书籍。'),
             )
             cur.execute(
                 "INSERT INTO `news` (`title`, `introduction`, `picture`, `content`) VALUES (%s, %s, %s, %s)",
                 (
-                    '欢迎使用二手书籍交易平台',
-                    '平台正式上线，欢迎大家使用',
+                    '欢迎使用校园二手专业书平台',
+                    '平台已完成基础功能初始化，可直接用于演示与开发。',
                     'upload/news_picture1.jpg',
-                    '<p>欢迎使用二手书籍交易平台，在这里您可以买到物美价廉的二手书籍。</p>',
+                    '<p>欢迎使用校园二手专业书平台，当前版本已支持校园用户同时进行买书和卖书。</p>',
                 ),
             )
 

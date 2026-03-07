@@ -1,7 +1,6 @@
 import os
 import sys
 
-# Add backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask
@@ -12,7 +11,6 @@ from models import db
 from api.auth import auth_bp
 from api.users import users_bp
 from api.yonghu import yonghu_bp
-from api.shangjia import shangjia_bp
 from api.ershoushuji import ershoushuji_bp
 from api.orders import orders_bp
 from api.cart import cart_bp
@@ -26,6 +24,7 @@ from api.storeup import storeup_bp
 from api.config_api import config_bp
 from api.file import file_bp
 from api.common import common_bp
+from api.wallet import wallet_bp
 
 
 def create_app():
@@ -38,11 +37,9 @@ def create_app():
     JWTManager(app)
     db.init_app(app)
 
-    # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(yonghu_bp, url_prefix='/api/yonghu')
-    app.register_blueprint(shangjia_bp, url_prefix='/api/shangjia')
     app.register_blueprint(ershoushuji_bp, url_prefix='/api/ershoushuji')
     app.register_blueprint(orders_bp, url_prefix='/api/orders')
     app.register_blueprint(cart_bp, url_prefix='/api/cart')
@@ -54,6 +51,7 @@ def create_app():
     app.register_blueprint(discuss_bp, url_prefix='/api/discussershoushuji')
     app.register_blueprint(storeup_bp, url_prefix='/api/storeup')
     app.register_blueprint(config_bp, url_prefix='/api/config')
+    app.register_blueprint(wallet_bp, url_prefix='/api/wallet')
     app.register_blueprint(file_bp, url_prefix='/api/file')
     app.register_blueprint(common_bp, url_prefix='/api')
 

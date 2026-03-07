@@ -32,9 +32,10 @@ def detail(id):
 @ershoushuji_bp.route('/save', methods=['POST'])
 @login_required_custom
 def save():
+    identity = get_jwt_identity()
     try:
-        ErshoushujiService.save(request.json)
-        return R_ok()
+        book = ErshoushujiService.save(request.json, identity)
+        return R_ok(data=book)
     except ValueError as e:
         return R_error(str(e))
 
@@ -42,8 +43,8 @@ def save():
 @ershoushuji_bp.route('/add', methods=['POST'])
 def add():
     try:
-        ErshoushujiService.save(request.json)
-        return R_ok()
+        book = ErshoushujiService.save(request.json)
+        return R_ok(data=book)
     except ValueError as e:
         return R_error(str(e))
 
@@ -51,12 +52,14 @@ def add():
 @ershoushuji_bp.route('/update', methods=['POST'])
 @login_required_custom
 def update():
-    ok, err = ErshoushujiService.update(request.json)
+    identity = get_jwt_identity()
+    ok, err = ErshoushujiService.update(request.json, identity)
     return R_ok() if ok else R_error(err)
 
 
 @ershoushuji_bp.route('/delete', methods=['POST'])
 @login_required_custom
 def delete():
-    ErshoushujiService.delete(request.json)
+    identity = get_jwt_identity()
+    ErshoushujiService.delete(request.json, identity)
     return R_ok()

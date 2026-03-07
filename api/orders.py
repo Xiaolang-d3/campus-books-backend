@@ -33,27 +33,35 @@ def detail(id):
 @login_required_custom
 def save():
     identity = get_jwt_identity()
-    OrdersService.save(request.json, identity)
-    return R_ok()
+    try:
+        order = OrdersService.save(request.json, identity)
+        return R_ok(data=order)
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @orders_bp.route('/add', methods=['POST'])
 def add():
-    OrdersService.save(request.json)
-    return R_ok()
+    try:
+        order = OrdersService.save(request.json)
+        return R_ok(data=order)
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @orders_bp.route('/update', methods=['POST'])
 @login_required_custom
 def update():
-    ok, err = OrdersService.update(request.json)
+    identity = get_jwt_identity()
+    ok, err = OrdersService.update(request.json, identity)
     return R_ok() if ok else R_error(err)
 
 
 @orders_bp.route('/delete', methods=['POST'])
 @login_required_custom
 def delete():
-    OrdersService.delete(request.json)
+    identity = get_jwt_identity()
+    OrdersService.delete(request.json, identity)
     return R_ok()
 
 

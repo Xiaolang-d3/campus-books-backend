@@ -1,4 +1,4 @@
-from models import Ershoushuji, db
+from models import Ershoushuji, Yonghu, db
 from utils import apply_filters, generate_id, model_to_dict, paginate_query
 
 
@@ -30,7 +30,6 @@ class ErshoushujiService:
 
     @staticmethod
     def _validate_payload(data):
-        data = data or {}
         field_names = {
             'shujimingcheng': '书籍名称',
             'isbn': 'ISBN',
@@ -52,10 +51,17 @@ class ErshoushujiService:
         return True, None
 
     @staticmethod
+    def _apply_visibility_scope(query, params, identity):
+        if not identity or identity.get('tableName') == 'users':
+            return query
+        if params.get('myPublished') == '1':
+            return query.filter_by(faburenid=identity['id'])
+        return query
+
+    @staticmethod
     def page(params, identity=None):
         query = Ershoushuji.query
-        if identity and identity.get('tableName') == 'shangjia':
-            query = query.filter_by(shangjiazhanghao=identity['username'])
+        query = ErshoushujiService._apply_visibility_scope(query, params, identity)
         query = apply_filters(
             Ershoushuji,
             query,
@@ -70,7 +76,7 @@ class ErshoushujiService:
                 'shiyongzhuanye',
                 'shiyongkecheng',
             ],
-            eq_fields=['shujifenlei', 'xinjiuchengdu', 'shangjiazhanghao', 'xueyuan', 'zhuanye', 'kecheng', 'banben'],
+            eq_fields=['shujifenlei', 'xinjiuchengdu', 'xueyuan', 'zhuanye', 'kecheng', 'banben', 'faburenid'],
         )
         query = ErshoushujiService._apply_price_filter(query, params)
         return paginate_query(Ershoushuji, query, params)
@@ -102,24 +108,35 @@ class ErshoushujiService:
         return model_to_dict(Ershoushuji.query.get(book_id))
 
     @staticmethod
-    def save(data):
+    def save(data, identity=None):
         ok, err = ErshoushujiService._validate_payload(data)
         if not ok:
             raise ValueError(err)
 
         payload = dict(data)
         payload['id'] = generate_id()
-        if 'kucun' not in payload or payload['kucun'] is None:
+        if payload.get('kucun') is None:
             payload['kucun'] = 1
+
+        if identity and identity.get('tableName') == 'yonghu':
+            user = Yonghu.query.get(identity['id'])
+            payload['faburenid'] = user.id
+            payload['faburenzhanghao'] = user.yonghuzhanghao
+            payload['faburenxingming'] = user.yonghuxingming
+
         book = Ershoushuji(**payload)
         db.session.add(book)
         db.session.commit()
+        return model_to_dict(book)
 
     @staticmethod
-    def update(data):
+    def update(data, identity=None):
         book = Ershoushuji.query.get(data.get('id'))
         if not book:
             return False, '书籍不存在'
+
+        if identity and identity.get('tableName') == 'yonghu' and book.faburenid != identity['id']:
+            return False, '只能修改自己发布的书籍'
 
         ok, err = ErshoushujiService._validate_payload(data)
         if not ok:
@@ -132,8 +149,11 @@ class ErshoushujiService:
         return True, None
 
     @staticmethod
-    def delete(ids):
-        Ershoushuji.query.filter(Ershoushuji.id.in_(ids)).delete(synchronize_session=False)
+    def delete(ids, identity=None):
+        query = Ershoushuji.query.filter(Ershoushuji.id.in_(ids))
+        if identity and identity.get('tableName') == 'yonghu':
+            query = query.filter_by(faburenid=identity['id'])
+        query.delete(synchronize_session=False)
         db.session.commit()
 
     @staticmethod

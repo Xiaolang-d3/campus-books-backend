@@ -1,33 +1,44 @@
 """
-导入 Spring Boot 项目的示例数据
-用法: python -m migrations.seed_data
+Seed example data for local development.
+
+Usage:
+    python -m migrations.seed_data
 """
-import sys
+
 import os
-import yaml
-import pymysql
+import sys
 from urllib.parse import urlparse
+
+import pymysql
+import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-_config_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.yaml')
-with open(_config_file, 'r', encoding='utf-8') as f:
-    _cfg = yaml.safe_load(f)
+CONFIG_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'config',
+    'config.yaml',
+)
+with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+    CONFIG = yaml.safe_load(f)
 
-_db_uri = _cfg['database']['uri']
-_parsed = urlparse(_db_uri.replace('mysql+pymysql://', 'mysql://'))
-DB_HOST = _parsed.hostname or '127.0.0.1'
-DB_PORT = _parsed.port or 3306
-DB_USER = _parsed.username or 'root'
-DB_PASS = _parsed.password or ''
-DB_NAME = _parsed.path.lstrip('/').split('?')[0]
+db_uri = CONFIG['database']['uri']
+parsed = urlparse(db_uri.replace('mysql+pymysql://', 'mysql://'))
+DB_HOST = parsed.hostname or '127.0.0.1'
+DB_PORT = parsed.port or 3306
+DB_USER = parsed.username or 'root'
+DB_PASS = parsed.password or ''
+DB_NAME = parsed.path.lstrip('/').split('?')[0]
 
 
 def get_connection():
     return pymysql.connect(
-        host=DB_HOST, port=DB_PORT,
-        user=DB_USER, password=DB_PASS,
-        database=DB_NAME, charset='utf8mb4',
+        host=DB_HOST,
+        port=DB_PORT,
+        user=DB_USER,
+        password=DB_PASS,
+        database=DB_NAME,
+        charset='utf8mb4',
     )
 
 
@@ -35,69 +46,100 @@ def seed():
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # 检查是否已导入
-            cur.execute("SELECT COUNT(*) FROM shangjia")
-            if cur.fetchone()[0] > 0:
-                print("[SKIP] 商家数据已存在")
-            else:
-                shangjia = [
-                    (21, '商家姓名1', '商家账号1', '123456', '男', 'upload/shangjia_touxiang1.jpg', '13823888881', 200),
-                    (22, '商家姓名2', '商家账号2', '123456', '男', 'upload/shangjia_touxiang2.jpg', '13823888882', 200),
-                    (23, '商家姓名3', '商家账号3', '123456', '男', 'upload/shangjia_touxiang3.jpg', '13823888883', 200),
-                    (24, '商家姓名4', '商家账号4', '123456', '男', 'upload/shangjia_touxiang4.jpg', '13823888884', 200),
-                    (25, '商家姓名5', '商家账号5', '123456', '男', 'upload/shangjia_touxiang5.jpg', '13823888885', 200),
-                    (26, '商家姓名6', '商家账号6', '123456', '男', 'upload/shangjia_touxiang6.jpg', '13823888886', 200),
-                    (27, '商家姓名7', '商家账号7', '123456', '男', 'upload/shangjia_touxiang7.jpg', '13823888887', 200),
-                    (28, '商家姓名8', '商家账号8', '123456', '男', 'upload/shangjia_touxiang8.jpg', '13823888888', 200),
-                ]
-                for s in shangjia:
-                    cur.execute(
-                        "INSERT INTO shangjia (id, shangjiaxingming, shangjiazhanghao, mima, xingbie, touxiang, dianhuahaoma, money) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)", s
-                    )
-                print(f"[OK] 导入 {len(shangjia)} 条商家数据")
-
             cur.execute("SELECT COUNT(*) FROM yonghu")
-            if cur.fetchone()[0] > 0:
-                print("[SKIP] 用户数据已存在")
-            else:
-                yonghu = [
-                    (11, '用户账号1', '用户姓名1', '123456', '男', 'upload/yonghu_touxiang1.jpg', '13823888881', 200),
-                    (12, '用户账号2', '用户姓名2', '123456', '男', 'upload/yonghu_touxiang2.jpg', '13823888882', 200),
-                    (13, '用户账号3', '用户姓名3', '123456', '男', 'upload/yonghu_touxiang3.jpg', '13823888883', 200),
-                    (14, '用户账号4', '用户姓名4', '123456', '男', 'upload/yonghu_touxiang4.jpg', '13823888884', 200),
-                    (15, '用户账号5', '用户姓名5', '123456', '男', 'upload/yonghu_touxiang5.jpg', '13823888885', 200),
-                    (16, '用户账号6', '用户姓名6', '123456', '男', 'upload/yonghu_touxiang6.jpg', '13823888886', 200),
-                    (17, '用户账号7', '用户姓名7', '123456', '男', 'upload/yonghu_touxiang7.jpg', '13823888887', 200),
-                    (18, '用户账号8', '用户姓名8', '123456', '男', 'upload/yonghu_touxiang8.jpg', '13823888888', 200),
+            if cur.fetchone()[0] == 0:
+                users = [
+                    ('20220011', '王同学', '123456', '男', '13800138111', '计算机学院', '计算机科学与技术', '2022级', 300),
+                    ('20220012', '陈同学', '123456', '女', '13800138112', '经济管理学院', '金融学', '2021级', 600),
+                    ('20220013', '赵同学', '123456', '男', '13800138113', '外国语学院', '英语', '2023级', 120),
                 ]
-                for u in yonghu:
+                for user in users:
                     cur.execute(
-                        "INSERT INTO yonghu (id, yonghuzhanghao, yonghuxingming, mima, xingbie, touxiang, dianhuahaoma, money) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)", u
+                        """
+                        INSERT INTO yonghu
+                        (yonghuzhanghao, yonghuxingming, mima, xingbie, dianhuahaoma, xueyuan, zhuanye, nianji, money)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        user,
                     )
-                print(f"[OK] 导入 {len(yonghu)} 条用户数据")
+                print(f"[OK] 导入 {len(users)} 条校园用户数据")
+            else:
+                print('[SKIP] 校园用户数据已存在')
 
             cur.execute("SELECT COUNT(*) FROM ershoushuji")
-            if cur.fetchone()[0] > 0:
-                print("[SKIP] 书籍数据已存在")
-            else:
+            if cur.fetchone()[0] == 0:
                 books = [
-                    (41, '1111111111', '书籍名称1', 'upload/ershoushuji_shujifengmian1.jpg', '书籍作者1', '文学', '经典文学作品，值得一读', '全新', '人民文学出版社', '2026-02-10', '商家账号1', '商家姓名1', 29.9),
-                    (42, '2222222222', '书籍名称2', 'upload/ershoushuji_shujifengmian2.jpg', '书籍作者2', '计算机', 'Python编程入门经典教材', '全新', '清华大学出版社', '2026-02-10', '商家账号2', '商家姓名2', 45.0),
-                    (43, '3333333333', '书籍名称3', 'upload/ershoushuji_shujifengmian3.jpg', '书籍作者3', '历史', '中国历史通俗读物', '九成新', '中华书局', '2026-02-10', '商家账号3', '商家姓名3', 35.5),
-                    (44, '4444444444', '书籍名称4', 'upload/ershoushuji_shujifengmian4.jpg', '书籍作者4', '哲学', '西方哲学入门', '全新', '商务印书馆', '2026-02-10', '商家账号4', '商家姓名4', 28.0),
-                    (45, '5555555555', '书籍名称5', 'upload/ershoushuji_shujifengmian5.jpg', '书籍作者5', '经济', '经济学原理', '九成新', '北京大学出版社', '2026-02-10', '商家账号5', '商家姓名5', 52.0),
-                    (46, '6666666666', '书籍名称6', 'upload/ershoushuji_shujifengmian6.jpg', '书籍作者6', '教育', '教育心理学', '全新', '华东师范大学出版社', '2026-02-10', '商家账号6', '商家姓名6', 38.0),
-                    (47, '7777777777', '书籍名称7', 'upload/ershoushuji_shujifengmian7.jpg', '书籍作者7', '艺术', '艺术的故事', '八成新', '广西美术出版社', '2026-02-10', '商家账号7', '商家姓名7', 66.0),
-                    (48, '8888888888', '书籍名称8', 'upload/ershoushuji_shujifengmian8.jpg', '书籍作者8', '科学', '时间简史', '全新', '湖南科学技术出版社', '2026-02-10', '商家账号8', '商家姓名8', 42.0),
+                    (
+                        'CS101-01',
+                        'Python程序设计',
+                        'upload/python.jpg',
+                        '董付国',
+                        '9787302602594',
+                        'CS101',
+                        '第3版',
+                        '计算机科学与技术,软件工程',
+                        'Python程序设计',
+                        '计算机',
+                        '计算机学院',
+                        '计算机科学与技术',
+                        'Python程序设计',
+                        '第3版',
+                        'Python 入门教材，适合程序设计基础课程。',
+                        '九成新',
+                        '清华大学出版社',
+                        '2026-03-01',
+                        20220011,
+                        '20220011',
+                        '王同学',
+                        38,
+                        2,
+                    ),
+                    (
+                        'ACC201-01',
+                        '基础会计学',
+                        'upload/accounting.jpg',
+                        '王华',
+                        '9787300317650',
+                        'ACC201',
+                        '第2版',
+                        '会计学,财务管理',
+                        '基础会计学',
+                        '经济',
+                        '经济管理学院',
+                        '会计学',
+                        '基础会计学',
+                        '第2版',
+                        '会计学核心教材，适合大一专业基础课。',
+                        '八成新',
+                        '中国人民大学出版社',
+                        '2026-03-03',
+                        20220012,
+                        '20220012',
+                        '陈同学',
+                        28,
+                        1,
+                    ),
                 ]
-                for b in books:
+                for book in books:
                     cur.execute(
-                        "INSERT INTO ershoushuji (id, shujibianhao, shujimingcheng, shujifengmian, shujizuozhe, shujifenlei, shujijianjie, xinjiuchengdu, chubanshe, shangjiariqi, shangjiazhanghao, shangjiaxingming, price) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", b
+                        """
+                        INSERT INTO ershoushuji
+                        (
+                          shujibianhao, shujimingcheng, shujifengmian, shujizuozhe, isbn, kechengbianhao,
+                          jiaocaibanben, shiyongzhuanye, shiyongkecheng, shujifenlei, xueyuan, zhuanye,
+                          kecheng, banben, shujijianjie, xinjiuchengdu, chubanshe, shangjiariqi,
+                          faburenid, faburenzhanghao, faburenxingming, price, kucun
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        book,
                     )
                 print(f"[OK] 导入 {len(books)} 条书籍数据")
+            else:
+                print('[SKIP] 书籍数据已存在')
 
         conn.commit()
-        print("========== 数据导入完成 ==========")
+        print('========== 示例数据导入完成 ==========')
     finally:
         conn.close()
 

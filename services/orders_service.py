@@ -1,25 +1,42 @@
-from models import db, Orders
-from utils import model_to_dict, paginate_query, apply_filters, generate_id, generate_order_id
 from sqlalchemy import text
-from services.ershoushuji_service import ErshoushujiService
+
+from models import Ershoushuji, Orders, Yonghu, db
+from utils import apply_filters, generate_id, generate_order_id, model_to_dict, paginate_query
 
 
 class OrdersService:
+    PAID_STATUSES = {'已支付', '已发货', '已完成'}
+
     @staticmethod
     def page(params, identity=None):
         query = Orders.query
-        if identity and identity.get('role') != '管理员':
-            query = query.filter_by(userid=identity['id'])
+        if identity and identity.get('tableName') != 'users':
+            if params.get('viewType') == 'sell':
+                query = query.filter_by(sellerid=identity['id'])
+            else:
+                query = query.filter_by(userid=identity['id'])
+
         status = params.get('status')
         if status:
             query = query.filter_by(status=status)
-        query = apply_filters(Orders, query, params, like_fields=['orderid', 'goodname'])
+
+        query = apply_filters(
+            Orders,
+            query,
+            params,
+            like_fields=['orderid', 'goodname', 'sellerzhanghao', 'sellerxingming'],
+        )
         return paginate_query(Orders, query, params)
 
     @staticmethod
     def list_all(params):
         query = Orders.query
-        query = apply_filters(Orders, query, params, like_fields=['orderid', 'goodname'])
+        query = apply_filters(
+            Orders,
+            query,
+            params,
+            like_fields=['orderid', 'goodname', 'sellerzhanghao', 'sellerxingming'],
+        )
         return paginate_query(Orders, query, params)
 
     @staticmethod
@@ -28,81 +45,183 @@ class OrdersService:
 
     @staticmethod
     def save(data, identity=None):
-        # 检查库存
         goodid = data.get('goodid')
-        buynumber = data.get('buynumber', 1)
-        if goodid:
-            ok, err = ErshoushujiService.check_stock(goodid, buynumber)
-            if not ok:
-                raise ValueError(err)
+        buynumber = int(data.get('buynumber', 1) or 1)
+        book = Ershoushuji.query.get(goodid) if goodid else None
+        if not book:
+            raise ValueError('书籍不存在')
 
-        data['id'] = generate_id()
-        if not data.get('orderid'):
-            data['orderid'] = generate_order_id()
-        if identity:
-            data['userid'] = identity['id']
+        ok, err = OrdersService._check_book_available(book, buynumber, identity)
+        if not ok:
+            raise ValueError(err)
 
-        # 创建订单
-        order = Orders(**data)
+        payload = dict(data)
+        payload['id'] = generate_id()
+        payload['orderid'] = payload.get('orderid') or generate_order_id()
+        payload['userid'] = identity['id'] if identity else payload.get('userid')
+        payload['sellerid'] = book.faburenid
+        payload['sellerzhanghao'] = book.faburenzhanghao
+        payload['sellerxingming'] = book.faburenxingming
+        payload['status'] = payload.get('status') or '未支付'
+
+        order = Orders(**payload)
         db.session.add(order)
 
-        # 扣减库存（仅在创建订单时扣减）
-        if goodid and data.get('status') != '已退款':
-            ok, err = ErshoushujiService.reduce_stock(goodid, buynumber)
-            if not ok:
-                db.session.rollback()
-                raise ValueError(err)
+        ok, err = OrdersService._lock_stock(book, buynumber, payload['status'])
+        if not ok:
+            db.session.rollback()
+            raise ValueError(err)
 
         db.session.commit()
+        return model_to_dict(order)
 
     @staticmethod
-    def update(data):
+    def _check_book_available(book, buynumber, identity):
+        if identity and book.faburenid == identity['id']:
+            return False, '不能购买自己发布的书籍'
+        if int(book.kucun or 0) < buynumber:
+            return False, f'库存不足，当前库存：{book.kucun or 0}'
+        return True, None
+
+    @staticmethod
+    def _lock_stock(book, buynumber, status):
+        if status == '已退款':
+            return True, None
+        if int(book.kucun or 0) < buynumber:
+            return False, f'库存不足，当前库存：{book.kucun or 0}'
+        book.kucun = int(book.kucun or 0) - buynumber
+        return True, None
+
+    @staticmethod
+    def update(data, identity=None):
         order = Orders.query.get(data.get('id'))
         if not order:
             return False, '订单不存在'
 
-        old_status = order.status
         new_status = data.get('status')
+        old_status = order.status
+        if not OrdersService._can_update_order(order, identity, new_status):
+            return False, '无权修改该订单'
 
-        # 如果订单状态变更为"已退款"，需要恢复库存
-        if new_status == '已退款' and old_status != '已退款':
-            if order.goodid and order.buynumber:
-                ok, err = ErshoushujiService.increase_stock(order.goodid, order.buynumber)
-                if not ok:
-                    return False, err
+        if new_status and new_status != old_status:
+            ok, err = OrdersService._apply_status_transition(order, old_status, new_status)
+            if not ok:
+                db.session.rollback()
+                return False, err
 
-        for k, v in data.items():
-            if hasattr(order, k):
-                setattr(order, k, v)
+        for key, value in data.items():
+            if hasattr(order, key):
+                setattr(order, key, value)
         db.session.commit()
         return True, None
 
     @staticmethod
-    def delete(ids):
-        # 删除订单前，如果订单未完成，需要恢复库存
-        orders = Orders.query.filter(Orders.id.in_(ids)).all()
+    def _apply_status_transition(order, old_status, new_status):
+        if old_status == '未支付' and new_status == '已支付':
+            return OrdersService._apply_payment(order)
+
+        if new_status == '已退款' and old_status != '已退款':
+            ok, err = OrdersService._apply_refund(order, old_status)
+            if not ok:
+                return False, err
+            return True, None
+
+        return True, None
+
+    @staticmethod
+    def _apply_payment(order):
+        buyer = Yonghu.query.get(order.userid)
+        if not buyer:
+            return False, '买家不存在'
+
+        total = float(order.total or 0)
+        if float(buyer.money or 0) < total:
+            return False, '余额不足，无法支付'
+
+        seller = Yonghu.query.get(order.sellerid) if order.sellerid else None
+        buyer.money = float(buyer.money or 0) - total
+        if seller:
+            seller.money = float(seller.money or 0) + total
+        return True, None
+
+    @staticmethod
+    def _apply_refund(order, old_status):
+        book = Ershoushuji.query.get(order.goodid) if order.goodid else None
+        if book:
+            book.kucun = int(book.kucun or 0) + int(order.buynumber or 0)
+
+        if old_status in OrdersService.PAID_STATUSES:
+            total = float(order.total or 0)
+            buyer = Yonghu.query.get(order.userid)
+            seller = Yonghu.query.get(order.sellerid) if order.sellerid else None
+            if buyer:
+                buyer.money = float(buyer.money or 0) + total
+            if seller:
+                seller.money = float(seller.money or 0) - total
+        return True, None
+
+    @staticmethod
+    def _can_update_order(order, identity, new_status):
+        if not identity:
+            return True
+        if identity.get('tableName') == 'users':
+            return True
+        if new_status == '已发货':
+            return order.sellerid == identity['id']
+        return order.userid == identity['id']
+
+    @staticmethod
+    def delete(ids, identity=None):
+        query = Orders.query.filter(Orders.id.in_(ids))
+        if identity and identity.get('tableName') != 'users':
+            query = query.filter(Orders.userid == identity['id'])
+
+        orders = query.all()
         for order in orders:
             if order.status not in ['已完成', '已退款'] and order.goodid and order.buynumber:
-                ErshoushujiService.increase_stock(order.goodid, order.buynumber)
+                book = Ershoushuji.query.get(order.goodid)
+                if book:
+                    book.kucun = int(book.kucun or 0) + int(order.buynumber or 0)
+            if order.status in OrdersService.PAID_STATUSES:
+                buyer = Yonghu.query.get(order.userid)
+                seller = Yonghu.query.get(order.sellerid) if order.sellerid else None
+                total = float(order.total or 0)
+                if buyer:
+                    buyer.money = float(buyer.money or 0) + total
+                if seller:
+                    seller.money = float(seller.money or 0) - total
 
-        Orders.query.filter(Orders.id.in_(ids)).delete(synchronize_session=False)
+        query.delete(synchronize_session=False)
         db.session.commit()
 
     @staticmethod
     def value_stat(x_col, y_col):
-        sql = text(f"SELECT `{x_col}` as name, SUM(`{y_col}`) as value FROM orders WHERE status IN ('已支付','已发货','已完成') GROUP BY `{x_col}`")
+        sql = text(
+            f"SELECT `{x_col}` as name, SUM(`{y_col}`) as value "
+            f"FROM orders WHERE status IN ({OrdersService._paid_status_sql()}) GROUP BY `{x_col}`"
+        )
         result = db.session.execute(sql)
-        return [{'name': str(r[0]) if r[0] else '', 'value': float(r[1] or 0)} for r in result]
+        return [{'name': str(row[0]) if row[0] else '', 'value': float(row[1] or 0)} for row in result]
 
     @staticmethod
     def value_time_stat(x_col, y_col, time_stat_type):
         time_format = {'日': '%Y-%m-%d', '月': '%Y-%m', '年': '%Y'}.get(time_stat_type, '%Y-%m-%d')
-        sql = text(f"SELECT DATE_FORMAT(`{x_col}`, :fmt) as name, SUM(`{y_col}`) as value FROM orders WHERE status IN ('已支付','已发货','已完成') GROUP BY name ORDER BY name")
+        sql = text(
+            f"SELECT DATE_FORMAT(`{x_col}`, :fmt) as name, SUM(`{y_col}`) as value "
+            f"FROM orders WHERE status IN ({OrdersService._paid_status_sql()}) GROUP BY name ORDER BY name"
+        )
         result = db.session.execute(sql, {'fmt': time_format})
-        return [{'name': str(r[0]) if r[0] else '', 'value': float(r[1] or 0)} for r in result]
+        return [{'name': str(row[0]) if row[0] else '', 'value': float(row[1] or 0)} for row in result]
 
     @staticmethod
     def group_stat(column_name):
-        sql = text(f"SELECT `{column_name}` as name, COUNT(*) as value FROM orders WHERE status IN ('已支付','已发货','已完成') GROUP BY `{column_name}`")
+        sql = text(
+            f"SELECT `{column_name}` as name, COUNT(*) as value "
+            f"FROM orders WHERE status IN ({OrdersService._paid_status_sql()}) GROUP BY `{column_name}`"
+        )
         result = db.session.execute(sql)
-        return [{'name': str(r[0]) if r[0] else '', 'value': int(r[1] or 0)} for r in result]
+        return [{'name': str(row[0]) if row[0] else '', 'value': int(row[1] or 0)} for row in result]
+
+    @staticmethod
+    def _paid_status_sql():
+        return "', '".join(OrdersService.PAID_STATUSES).join(["'", "'"])

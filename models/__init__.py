@@ -32,20 +32,6 @@ class Yonghu(db.Model):
     money = db.Column(db.Float, default=0, comment='余额')
 
 
-class Shangjia(db.Model):
-    __tablename__ = 'shangjia'
-
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    addtime = db.Column(db.DateTime, default=datetime.now)
-    shangjiaxingming = db.Column(db.String(200), nullable=False, comment='商家姓名')
-    shangjiazhanghao = db.Column(db.String(200), nullable=False, unique=True, comment='商家账号')
-    mima = db.Column(db.String(200), nullable=False, comment='密码')
-    xingbie = db.Column(db.String(200), comment='性别')
-    touxiang = db.Column(db.Text, comment='头像')
-    dianhuahaoma = db.Column(db.String(200), comment='电话号码')
-    money = db.Column(db.Float, default=0, comment='余额')
-
-
 class Shujifenlei(db.Model):
     __tablename__ = 'shujifenlei'
 
@@ -77,8 +63,9 @@ class Ershoushuji(db.Model):
     xinjiuchengdu = db.Column(db.String(200), comment='新旧程度')
     chubanshe = db.Column(db.String(200), comment='出版社')
     shangjiariqi = db.Column(db.Date, comment='上架日期')
-    shangjiazhanghao = db.Column(db.String(200), comment='商家账号')
-    shangjiaxingming = db.Column(db.String(200), comment='商家姓名')
+    faburenid = db.Column(db.BigInteger, nullable=False, default=0, comment='发布人ID')
+    faburenzhanghao = db.Column(db.String(200), nullable=False, default='', comment='发布人账号')
+    faburenxingming = db.Column(db.String(200), nullable=False, default='', comment='发布人姓名')
     price = db.Column(db.Float, nullable=False, comment='价格')
     kucun = db.Column(db.Integer, default=1, comment='库存数量')
 
@@ -90,8 +77,11 @@ class Orders(db.Model):
     addtime = db.Column(db.DateTime, default=datetime.now)
     orderid = db.Column(db.String(200), nullable=False, unique=True, comment='订单编号')
     tablename = db.Column(db.String(200), default='ershoushuji', comment='商品表名')
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
-    goodid = db.Column(db.BigInteger, nullable=False, comment='商品id')
+    userid = db.Column(db.BigInteger, nullable=False, comment='买家ID')
+    sellerid = db.Column(db.BigInteger, nullable=False, default=0, comment='卖家ID')
+    sellerzhanghao = db.Column(db.String(200), nullable=False, default='', comment='卖家账号')
+    sellerxingming = db.Column(db.String(200), nullable=False, default='', comment='卖家姓名')
+    goodid = db.Column(db.BigInteger, nullable=False, comment='商品ID')
     goodname = db.Column(db.String(200), comment='商品名称')
     picture = db.Column(db.Text, comment='商品图片')
     buynumber = db.Column(db.Integer, nullable=False, comment='购买数量')
@@ -114,8 +104,8 @@ class Cart(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     tablename = db.Column(db.String(200), default='ershoushuji', comment='商品表名')
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
-    goodid = db.Column(db.BigInteger, nullable=False, comment='商品id')
+    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
+    goodid = db.Column(db.BigInteger, nullable=False, comment='商品ID')
     goodname = db.Column(db.String(200), comment='商品名称')
     picture = db.Column(db.Text, comment='图片')
     buynumber = db.Column(db.Integer, nullable=False, comment='购买数量')
@@ -128,7 +118,7 @@ class Address(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
+    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
     address = db.Column(db.String(200), nullable=False, comment='地址')
     name = db.Column(db.String(200), nullable=False, comment='收货人')
     phone = db.Column(db.String(200), nullable=False, comment='电话')
@@ -177,8 +167,8 @@ class Discussershoushuji(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    refid = db.Column(db.BigInteger, nullable=False, comment='关联表id')
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
+    refid = db.Column(db.BigInteger, nullable=False, comment='关联表ID')
+    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
     avatarurl = db.Column(db.Text, comment='头像')
     nickname = db.Column(db.String(200), comment='用户昵称')
     content = db.Column(db.Text, nullable=False, comment='评论内容')
@@ -190,8 +180,8 @@ class Storeup(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
-    refid = db.Column(db.BigInteger, comment='商品id')
+    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
+    refid = db.Column(db.BigInteger, comment='商品ID')
     tablename = db.Column(db.String(200), comment='表名')
     name = db.Column(db.String(200), nullable=False, comment='名称')
     picture = db.Column(db.Text, nullable=False, comment='图片')
