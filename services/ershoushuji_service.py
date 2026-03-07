@@ -5,6 +5,11 @@ from utils import apply_filters, generate_id, model_to_dict, paginate_query
 class ErshoushujiService:
     REQUIRED_FIELDS = (
         'shujimingcheng',
+        'isbn',
+        'kechengbianhao',
+        'jiaocaibanben',
+        'shiyongzhuanye',
+        'shiyongkecheng',
         'shujifenlei',
         'xueyuan',
         'zhuanye',
@@ -28,6 +33,11 @@ class ErshoushujiService:
         data = data or {}
         field_names = {
             'shujimingcheng': '书籍名称',
+            'isbn': 'ISBN',
+            'kechengbianhao': '课程编号',
+            'jiaocaibanben': '教材版本',
+            'shiyongzhuanye': '适用专业',
+            'shiyongkecheng': '适用课程',
             'shujifenlei': '书籍分类',
             'xueyuan': '学院',
             'zhuanye': '专业',
@@ -50,7 +60,16 @@ class ErshoushujiService:
             Ershoushuji,
             query,
             params,
-            like_fields=['shujibianhao', 'shujimingcheng', 'shujizuozhe'],
+            like_fields=[
+                'shujibianhao',
+                'shujimingcheng',
+                'shujizuozhe',
+                'isbn',
+                'kechengbianhao',
+                'jiaocaibanben',
+                'shiyongzhuanye',
+                'shiyongkecheng',
+            ],
             eq_fields=['shujifenlei', 'xinjiuchengdu', 'shangjiazhanghao', 'xueyuan', 'zhuanye', 'kecheng', 'banben'],
         )
         query = ErshoushujiService._apply_price_filter(query, params)
@@ -63,7 +82,16 @@ class ErshoushujiService:
             Ershoushuji,
             query,
             params,
-            like_fields=['shujibianhao', 'shujimingcheng', 'shujizuozhe'],
+            like_fields=[
+                'shujibianhao',
+                'shujimingcheng',
+                'shujizuozhe',
+                'isbn',
+                'kechengbianhao',
+                'jiaocaibanben',
+                'shiyongzhuanye',
+                'shiyongkecheng',
+            ],
             eq_fields=['shujifenlei', 'xinjiuchengdu', 'xueyuan', 'zhuanye', 'kecheng', 'banben'],
         )
         query = ErshoushujiService._apply_price_filter(query, params)

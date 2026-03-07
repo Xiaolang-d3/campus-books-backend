@@ -108,6 +108,11 @@ def create_tables():
           `shujimingcheng` varchar(200) COMMENT '书籍名称',
           `shujifengmian` text COMMENT '书籍封面',
           `shujizuozhe` varchar(200) COMMENT '书籍作者',
+          `isbn` varchar(50) NOT NULL DEFAULT '' COMMENT 'ISBN',
+          `kechengbianhao` varchar(100) NOT NULL DEFAULT '' COMMENT '课程编号',
+          `jiaocaibanben` varchar(200) NOT NULL DEFAULT '' COMMENT '教材版本',
+          `shiyongzhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '适用专业',
+          `shiyongkecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '适用课程',
           `shujifenlei` varchar(200) COMMENT '书籍分类',
           `xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院',
           `zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业',
@@ -277,6 +282,11 @@ def ensure_column_exists(table_name, column_name, ddl):
 
 def patch_existing_schema():
     ensure_column_exists('ershoushuji', 'kucun', "`kucun` int DEFAULT 1 COMMENT '库存数量' AFTER `price`")
+    ensure_column_exists('ershoushuji', 'isbn', "`isbn` varchar(50) NOT NULL DEFAULT '' COMMENT 'ISBN' AFTER `shujizuozhe`")
+    ensure_column_exists('ershoushuji', 'kechengbianhao', "`kechengbianhao` varchar(100) NOT NULL DEFAULT '' COMMENT '课程编号' AFTER `isbn`")
+    ensure_column_exists('ershoushuji', 'jiaocaibanben', "`jiaocaibanben` varchar(200) NOT NULL DEFAULT '' COMMENT '教材版本' AFTER `kechengbianhao`")
+    ensure_column_exists('ershoushuji', 'shiyongzhuanye', "`shiyongzhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '适用专业' AFTER `jiaocaibanben`")
+    ensure_column_exists('ershoushuji', 'shiyongkecheng', "`shiyongkecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '适用课程' AFTER `shiyongzhuanye`")
     ensure_column_exists('ershoushuji', 'xueyuan', "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `shujifenlei`")
     ensure_column_exists('ershoushuji', 'zhuanye', "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`")
     ensure_column_exists('ershoushuji', 'kecheng', "`kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程' AFTER `zhuanye`")
