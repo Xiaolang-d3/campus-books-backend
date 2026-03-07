@@ -1,11 +1,13 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
 
 class Users(db.Model):
     __tablename__ = 'users'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     username = db.Column(db.String(100), nullable=False, unique=True)
     password = db.Column(db.String(100), nullable=False)
@@ -15,19 +17,24 @@ class Users(db.Model):
 
 class Yonghu(db.Model):
     __tablename__ = 'yonghu'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    yonghuzhanghao = db.Column(db.String(200), nullable=False, unique=True, comment='用户账号')
-    yonghuxingming = db.Column(db.String(200), nullable=False, comment='用户姓名')
+    yonghuzhanghao = db.Column(db.String(200), nullable=False, unique=True, comment='学号')
+    yonghuxingming = db.Column(db.String(200), nullable=False, comment='姓名')
     mima = db.Column(db.String(200), nullable=False, comment='密码')
     xingbie = db.Column(db.String(200), comment='性别')
     touxiang = db.Column(db.Text, comment='头像')
     dianhuahaoma = db.Column(db.String(200), comment='电话号码')
+    xueyuan = db.Column(db.String(200), nullable=False, default='', comment='学院')
+    zhuanye = db.Column(db.String(200), nullable=False, default='', comment='专业')
+    nianji = db.Column(db.String(200), nullable=False, default='', comment='年级')
     money = db.Column(db.Float, default=0, comment='余额')
 
 
 class Shangjia(db.Model):
     __tablename__ = 'shangjia'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     shangjiaxingming = db.Column(db.String(200), nullable=False, comment='商家姓名')
@@ -41,6 +48,7 @@ class Shangjia(db.Model):
 
 class Shujifenlei(db.Model):
     __tablename__ = 'shujifenlei'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     shujifenlei = db.Column(db.String(200), nullable=False, comment='书籍分类')
@@ -48,6 +56,7 @@ class Shujifenlei(db.Model):
 
 class Ershoushuji(db.Model):
     __tablename__ = 'ershoushuji'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     shujibianhao = db.Column(db.String(200), unique=True, comment='书籍编号')
@@ -67,6 +76,7 @@ class Ershoushuji(db.Model):
 
 class Orders(db.Model):
     __tablename__ = 'orders'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     orderid = db.Column(db.String(200), nullable=False, unique=True, comment='订单编号')
@@ -91,6 +101,7 @@ class Orders(db.Model):
 
 class Cart(db.Model):
     __tablename__ = 'cart'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     tablename = db.Column(db.String(200), default='ershoushuji', comment='商品表名')
@@ -105,6 +116,7 @@ class Cart(db.Model):
 
 class Address(db.Model):
     __tablename__ = 'address'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
@@ -116,6 +128,7 @@ class Address(db.Model):
 
 class News(db.Model):
     __tablename__ = 'news'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     title = db.Column(db.String(200), nullable=False, comment='标题')
@@ -126,6 +139,7 @@ class News(db.Model):
 
 class Aboutus(db.Model):
     __tablename__ = 'aboutus'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     title = db.Column(db.String(200), nullable=False)
@@ -138,6 +152,7 @@ class Aboutus(db.Model):
 
 class Systemintro(db.Model):
     __tablename__ = 'systemintro'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     title = db.Column(db.String(200), nullable=False)
@@ -150,18 +165,20 @@ class Systemintro(db.Model):
 
 class Discussershoushuji(db.Model):
     __tablename__ = 'discussershoushuji'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     refid = db.Column(db.BigInteger, nullable=False, comment='关联表id')
     userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
     avatarurl = db.Column(db.Text, comment='头像')
-    nickname = db.Column(db.String(200), comment='用户名')
+    nickname = db.Column(db.String(200), comment='用户昵称')
     content = db.Column(db.Text, nullable=False, comment='评论内容')
     reply = db.Column(db.Text, comment='回复内容')
 
 
 class Storeup(db.Model):
     __tablename__ = 'storeup'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
     userid = db.Column(db.BigInteger, nullable=False, comment='用户id')
@@ -176,6 +193,7 @@ class Storeup(db.Model):
 
 class ConfigModel(db.Model):
     __tablename__ = 'config'
+
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, comment='配置参数名称')
     value = db.Column(db.String(100), comment='配置参数值')
