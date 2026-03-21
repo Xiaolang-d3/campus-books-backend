@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import text
 
 from models import Book, Order, User, db
@@ -67,6 +69,10 @@ class OrderService:
         if book.condition:
             payload['condition_name'] = book.condition.name
         payload['status'] = payload.get('status') or '未支付'
+        payload['updatetime'] = datetime.now()
+
+        allowed_fields = {column.name for column in Order.__table__.columns}
+        payload = {key: value for key, value in payload.items() if key in allowed_fields}
 
         order = Order(**payload)
         db.session.add(order)
