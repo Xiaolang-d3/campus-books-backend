@@ -26,6 +26,8 @@ from api.file import file_bp
 from api.common import common_bp
 from api.wallet import wallet_bp
 from api.condition_level_api import condition_level_bp
+from api.recommend import recommend_bp
+from api.chat import chat_bp
 
 
 def create_app():
@@ -56,6 +58,8 @@ def create_app():
     app.register_blueprint(file_bp, url_prefix='/api/file')
     app.register_blueprint(common_bp, url_prefix='/api')
     app.register_blueprint(condition_level_bp, url_prefix='/api/conditionLevel')
+    app.register_blueprint(recommend_bp, url_prefix='/api/recommend')
+    app.register_blueprint(chat_bp, url_prefix='/api/chat')
 
     with app.app_context():
         db.create_all()

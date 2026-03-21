@@ -1,10 +1,7 @@
-import json
-
 from flask import Blueprint, request
-from flask_jwt_extended import create_access_token
-from werkzeug.security import check_password_hash
 
-from models import Admin, User
+from common import R_ok, R_error
+from services.auth_service import AuthService
 
 auth_bp = Blueprint('auth', __name__)
 

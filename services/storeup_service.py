@@ -9,13 +9,26 @@ class FavoriteService:
         if identity and identity.get('role') != '管理员':
             query = query.filter_by(user_id=identity['id'])
         query = apply_filters(Favorite, query, params, eq_fields=['user_id', 'book_id'])
-        return paginate_query(Favorite, query, params)
+        result = paginate_query(Favorite, query, params)
+        FavoriteService._attach_book_info(result)
+        return result
 
     @staticmethod
     def list_all(params):
         query = Favorite.query
         query = apply_filters(Favorite, query, params, eq_fields=['user_id', 'book_id'])
-        return paginate_query(Favorite, query, params)
+        result = paginate_query(Favorite, query, params)
+        FavoriteService._attach_book_info(result)
+        return result
+
+    @staticmethod
+    def _attach_book_info(result):
+        for item in (result.get('list') or []):
+            if item.get('book_id'):
+                book = Book.query.get(item['book_id'])
+                if book:
+                    item['book_title'] = book.title
+                    item['book_cover'] = book.cover
 
     @staticmethod
     def get_by_id(obj_id):

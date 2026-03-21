@@ -33,9 +33,14 @@ def save():
 
 
 @cart_bp.route('/add', methods=['POST'])
+@login_required_custom
 def add():
-    CartService.save(request.json)
-    return R_ok()
+    identity = get_jwt_identity()
+    try:
+        CartService.save(request.json, identity)
+        return R_ok()
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @cart_bp.route('/update', methods=['POST'])

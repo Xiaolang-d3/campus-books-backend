@@ -14,4 +14,14 @@ jwt:
 upload:
   max_content_length: 314572800  # 300MB
 
+# AI 推荐配置
+ai:
+  dashscope:
+    api_key: "sk-6f8ee11e9d3149daaaf7c9819830cbeb"  # 需要填写你的阿里云 DashScope API Key
+    model: "qwen-turbo"  # 模型：qwen-turbo, qwen-plus, qwen-max 等
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    max_tokens: 200
+    temperature: 0.8
+    cache_ttl: 600  # 缓存时间（秒），默认10分钟
+
 secret_key: dev-secret-key-change-in-production

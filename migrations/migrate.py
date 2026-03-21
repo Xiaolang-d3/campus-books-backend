@@ -299,73 +299,115 @@ def seed_data():
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM `admin`")
             if cur.fetchone()[0] > 0:
-                print('[SKIP] 初始数据已存在，跳过')
-                return
+                print('[SKIP] 基础数据已存在，跳过')
+            else:
+                cur.execute(
+                    "INSERT INTO `admin` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')"
+                )
+                print('[OK] 管理员数据已插入')
 
-            cur.execute(
-                "INSERT INTO `admin` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')"
-            )
+            cur.execute("SELECT COUNT(*) FROM `college`")
+            if cur.fetchone()[0] > 0:
+                print('[SKIP] 学院数据已存在，跳过')
+            else:
+                for college in ['计算机学院', '文学院', '经济管理学院', '理学院']:
+                    cur.execute("INSERT INTO `college` (`name`) VALUES (%s)", (college,))
 
-            for college in ['计算机学院', '文学院', '经济管理学院', '理学院']:
-                cur.execute("INSERT INTO `college` (`name`) VALUES (%s)", (college,))
+                majors = [
+                    ('软件工程', 1), ('计算机科学与技术', 1),
+                    ('汉语言文学', 2), ('新闻学', 2),
+                    ('会计学', 3), ('国际经济与贸易', 3),
+                    ('数学与应用数学', 4), ('物理学', 4),
+                ]
+                for name, college_id in majors:
+                    cur.execute("INSERT INTO `major` (`name`, `college_id`) VALUES (%s, %s)", (name, college_id))
 
-            majors = [
-                ('软件工程', 1), ('计算机科学与技术', 1),
-                ('汉语言文学', 2), ('新闻学', 2),
-                ('会计学', 3), ('国际经济与贸易', 3),
-                ('数学与应用数学', 4), ('物理学', 4),
-            ]
-            for name, college_id in majors:
-                cur.execute("INSERT INTO `major` (`name`, `college_id`) VALUES (%s, %s)", (name, college_id))
+                courses = [
+                    ('软件工程导论', 'CS101', 1), ('数据结构', 'CS102', 1), ('操作系统', 'CS103', 1),
+                    ('计算机组成原理', 'CS201', 2), ('数据库系统', 'CS202', 2), ('计算机网络', 'CS203', 2),
+                    ('中国现代文学', 'CL101', 3), ('古代汉语', 'CL102', 3),
+                    ('新闻采访与写作', 'JM101', 4), ('传播学概论', 'JM102', 4),
+                    ('基础会计', 'EM101', 5), ('财务管理', 'EM102', 5),
+                    ('国际贸易实务', 'EM201', 6), ('西方经济学', 'EM202', 6),
+                    ('高等数学', 'SC101', 7), ('线性代数', 'SC102', 7),
+                    ('大学物理', 'SC201', 8), ('理论力学', 'SC202', 8),
+                ]
+                for name, code, major_id in courses:
+                    cur.execute("INSERT INTO `course` (`name`, `code`, `major_id`) VALUES (%s, %s, %s)", (name, code, major_id))
 
-            courses = [
-                ('软件工程导论', 'CS101', 1), ('数据结构', 'CS102', 1), ('操作系统', 'CS103', 1),
-                ('计算机组成原理', 'CS201', 2), ('数据库系统', 'CS202', 2), ('计算机网络', 'CS203', 2),
-                ('中国现代文学', 'CL101', 3), ('古代汉语', 'CL102', 3),
-                ('新闻采访与写作', 'JM101', 4), ('传播学概论', 'JM102', 4),
-                ('基础会计', 'EM101', 5), ('财务管理', 'EM102', 5),
-                ('国际贸易实务', 'EM201', 6), ('西方经济学', 'EM202', 6),
-                ('高等数学', 'SC101', 7), ('线性代数', 'SC102', 7),
-                ('大学物理', 'SC201', 8), ('理论力学', 'SC202', 8),
-            ]
-            for name, code, major_id in courses:
-                cur.execute("INSERT INTO `course` (`name`, `code`, `major_id`) VALUES (%s, %s, %s)", (name, code, major_id))
+                categories = ['文学', '计算机', '历史', '哲学', '经济', '教育', '艺术', '科学']
+                for i, cat in enumerate(categories, 1):
+                    cur.execute("INSERT INTO `book_category` (`name`, `sort`) VALUES (%s, %s)", (cat, i))
 
-            categories = ['文学', '计算机', '历史', '哲学', '经济', '教育', '艺术', '科学']
-            for i, cat in enumerate(categories, 1):
-                cur.execute("INSERT INTO `book_category` (`name`, `sort`) VALUES (%s, %s)", (cat, i))
+                conditions = ['全新', '九成新', '八成新', '七成新', '六成及以下']
+                for cond in conditions:
+                    cur.execute("INSERT INTO `condition_level` (`name`) VALUES (%s)", (cond,))
 
-            conditions = ['全新', '九成新', '八成新', '七成新', '六成及以下']
-            for cond in conditions:
-                cur.execute("INSERT INTO `condition_level` (`name`) VALUES (%s)", (cond,))
+                for name, value in [
+                    ('picture1', 'picture1.jpg'),
+                    ('picture2', 'picture2.jpg'),
+                    ('picture3', 'picture3.jpg'),
+                ]:
+                    cur.execute("INSERT INTO `config` (`name`, `value`) VALUES (%s, %s)", (name, value))
 
-            for name, value in [
-                ('picture1', 'upload/picture1.jpg'),
-                ('picture2', 'upload/picture2.jpg'),
-                ('picture3', 'upload/picture3.jpg'),
-            ]:
-                cur.execute("INSERT INTO `config` (`name`, `value`) VALUES (%s, %s)", (name, value))
+                cur.execute(
+                    "INSERT INTO `aboutus` (`title`, `subtitle`, `content`) VALUES (%s, %s, %s)",
+                    ('关于我们', 'ABOUT US', '校园二手专业书平台，服务校内教材流转与供需匹配。'),
+                )
+                cur.execute(
+                    "INSERT INTO `systemintro` (`title`, `subtitle`, `content`) VALUES (%s, %s, %s)",
+                    ('系统简介', 'SYSTEM INTRODUCTION', '系统支持校园用户发布、浏览、购买和管理二手专业书籍。'),
+                )
+                cur.execute(
+                    "INSERT INTO `news` (`title`, `introduction`, `picture`, `content`) VALUES (%s, %s, %s, %s)",
+                    (
+                        '欢迎使用校园二手专业书平台',
+                        '平台已完成基础功能初始化，可直接用于演示与开发。',
+                        'news_picture1.jpg',
+                        '<p>欢迎使用校园二手专业书平台，当前版本已支持校园用户同时进行买书和卖书。</p>',
+                    ),
+                )
+                print('[OK] 基础数据已插入')
 
-            cur.execute(
-                "INSERT INTO `aboutus` (`title`, `subtitle`, `content`) VALUES (%s, %s, %s)",
-                ('关于我们', 'ABOUT US', '校园二手专业书平台，服务校内教材流转与供需匹配。'),
-            )
-            cur.execute(
-                "INSERT INTO `systemintro` (`title`, `subtitle`, `content`) VALUES (%s, %s, %s)",
-                ('系统简介', 'SYSTEM INTRODUCTION', '系统支持校园用户发布、浏览、购买和管理二手专业书籍。'),
-            )
-            cur.execute(
-                "INSERT INTO `news` (`title`, `introduction`, `picture`, `content`) VALUES (%s, %s, %s, %s)",
-                (
-                    '欢迎使用校园二手专业书平台',
-                    '平台已完成基础功能初始化，可直接用于演示与开发。',
-                    'upload/news_picture1.jpg',
-                    '<p>欢迎使用校园二手专业书平台，当前版本已支持校园用户同时进行买书和卖书。</p>',
-                ),
-            )
+            cur.execute("SELECT COUNT(*) FROM `user`")
+            if cur.fetchone()[0] > 0:
+                print('[SKIP] 用户数据已存在，跳过')
+            else:
+                users = [
+                    ('20220011', '王同学', '123456', '男', '13800138111', 1, 1, '2022级', 300.00),
+                    ('20220012', '陈同学', '123456', '女', '13800138112', 3, 5, '2021级', 600.00),
+                    ('20220013', '赵同学', '123456', '男', '13800138113', 2, 3, '2023级', 120.00),
+                ]
+                for user in users:
+                    cur.execute(
+                        "INSERT INTO `user` (`student_no`, `name`, `password`, `gender`, `phone`, `college_id`, `major_id`, `grade`, `balance`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        user,
+                    )
+                print(f'[OK] 导入 {len(users)} 条用户数据')
+
+            cur.execute("SELECT COUNT(*) FROM `book`")
+            if cur.fetchone()[0] > 0:
+                print('[SKIP] 书籍数据已存在，跳过')
+            else:
+                books = [
+                    ('9787302147514', '数据结构', '严蔚敏', 'datastructure.jpg', '清华大学出版社', '软件工程专业核心课程教材，内容涵盖线性表、栈、队列、树、图等数据结构。', 2, 2, 1, 35.00, 59.00, 2, 1),
+                    ('9787300283399', '金融学', '黄达', 'algorithm.jpg', '中国人民大学出版社', '金融学专业核心教材，系统介绍货币银行学与国际金融知识。', 5, 3, 2, 42.00, 68.00, 1, 1),
+                    ('9787040548505', '中国现代文学史', '朱栋霖', 'literature.jpg', '高等教育出版社', '文学院专业核心课程教材，梳理中国现代文学发展脉络。', 1, 2, 3, 30.00, 48.00, 3, 1),
+                    ('9787302492850', '操作系统原理', '汤小丹', 'csapp.jpg', '西安电子科技大学出版社', '计算机专业核心课程教材，详细讲解操作系统基本概念与实现技术。', 2, 2, 1, 38.00, 65.00, 2, 1),
+                    ('9787302348950', '数据库系统概论', '王珊', 'mysql.jpg', '高等教育出版社', '数据库系统经典教材，涵盖关系数据库、SQL、事务处理等内容。', 2, 2, 1, 32.00, 55.00, 4, 1),
+                    ('9787302607599', 'Python程序设计', '董付国', 'python.jpg', '清华大学出版社', 'Python入门教材，适合程序设计基础课程学习。', 2, 1, 1, 28.00, 45.00, 3, 1),
+                    ('9787300317650', '基础会计学', '王华', 'capital.jpg', '中国人民大学出版社', '会计学核心教材，适合大一专业基础课。', 5, 3, 2, 28.00, 42.00, 2, 1),
+                    ('9787302428019', '微观经济学', '高鸿业', 'economics.jpg', '中国人民大学出版社', '经济学专业基础教材，系统介绍供需理论、消费者行为等。', 5, 6, 2, 25.00, 38.00, 3, 1),
+                ]
+                for book in books:
+                    cur.execute(
+                        "INSERT INTO `book` (`isbn`, `title`, `author`, `cover`, `publisher`, `description`, `category_id`, `condition_id`, `seller_id`, `price`, `original_price`, `stock`, `status`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        book,
+                    )
+                print(f'[OK] 导入 {len(books)} 条书籍数据')
 
         conn.commit()
-        print('[OK] 初始数据已插入')
+        print('[OK] 示例数据导入完成')
     finally:
         conn.close()
 
