@@ -34,3 +34,12 @@ def pay():
     data = request.json or {}
     ok, err = WalletService.pay(identity, data.get('orderid'))
     return R_ok() if ok else R_error(err)
+
+
+@wallet_bp.route('/recharge', methods=['POST'])
+@login_required_custom
+def recharge():
+    identity = get_jwt_identity()
+    data = request.json or {}
+    ok, err = WalletService.recharge(identity, data.get('amount'))
+    return R_ok() if ok else R_error(err)

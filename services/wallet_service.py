@@ -63,6 +63,18 @@ class WalletService:
         return True, None
 
     @staticmethod
+    def recharge(identity, amount):
+        user = WalletService._get_user(identity)
+        amount = float(amount)
+        if amount <= 0:
+            return False, '充值金额必须大于0'
+        if amount > 10000:
+            return False, '单次充值金额不能超过10000元'
+        user.money = float(user.money or 0) + amount
+        db.session.commit()
+        return True, None
+
+    @staticmethod
     def _get_user(identity):
         if not identity or identity.get('tableName') != 'yonghu':
             raise ValueError('仅校园用户支持钱包功能')

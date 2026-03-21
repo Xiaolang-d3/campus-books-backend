@@ -3,7 +3,7 @@ from utils import apply_filters, generate_id, model_to_dict, paginate_query
 
 
 class YonghuService:
-    REQUIRED_FIELDS = ('yonghuzhanghao', 'yonghuxingming', 'mima', 'xueyuan', 'zhuanye', 'nianji')
+    REQUIRED_FIELDS = ('yonghuzhanghao', 'yonghuxingming', 'mima')
 
     @staticmethod
     def _validate_payload(data, is_update=False):
@@ -18,9 +18,6 @@ class YonghuService:
                     'yonghuzhanghao': '学号',
                     'yonghuxingming': '姓名',
                     'mima': '密码',
-                    'xueyuan': '学院',
-                    'zhuanye': '专业',
-                    'nianji': '年级',
                 }[field]
                 return False, f'{field_name}不能为空'
 
