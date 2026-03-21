@@ -25,6 +25,7 @@ from api.config_api import config_bp
 from api.file import file_bp
 from api.common import common_bp
 from api.wallet import wallet_bp
+from api.condition_level_api import condition_level_bp
 
 
 def create_app():
@@ -40,20 +41,21 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(yonghu_bp, url_prefix='/api/yonghu')
-    app.register_blueprint(ershoushuji_bp, url_prefix='/api/ershoushuji')
-    app.register_blueprint(orders_bp, url_prefix='/api/orders')
+    app.register_blueprint(ershoushuji_bp, url_prefix='/api/book')
+    app.register_blueprint(orders_bp, url_prefix='/api/order')
     app.register_blueprint(cart_bp, url_prefix='/api/cart')
     app.register_blueprint(address_bp, url_prefix='/api/address')
-    app.register_blueprint(shujifenlei_bp, url_prefix='/api/shujifenlei')
+    app.register_blueprint(shujifenlei_bp, url_prefix='/api/bookCategory')
     app.register_blueprint(news_bp, url_prefix='/api/news')
     app.register_blueprint(aboutus_bp, url_prefix='/api/aboutus')
     app.register_blueprint(systemintro_bp, url_prefix='/api/systemintro')
-    app.register_blueprint(discuss_bp, url_prefix='/api/discussershoushuji')
-    app.register_blueprint(storeup_bp, url_prefix='/api/storeup')
+    app.register_blueprint(discuss_bp, url_prefix='/api/review')
+    app.register_blueprint(storeup_bp, url_prefix='/api/favorite')
     app.register_blueprint(config_bp, url_prefix='/api/config')
     app.register_blueprint(wallet_bp, url_prefix='/api/wallet')
     app.register_blueprint(file_bp, url_prefix='/api/file')
     app.register_blueprint(common_bp, url_prefix='/api')
+    app.register_blueprint(condition_level_bp, url_prefix='/api/conditionLevel')
 
     with app.app_context():
         db.create_all()

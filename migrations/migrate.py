@@ -1,5 +1,5 @@
 """
-Database bootstrap and schema patch helpers.
+Database bootstrap - creates all normalized tables.
 """
 
 import os
@@ -54,203 +54,235 @@ def create_database():
 
 
 def create_tables():
+    conn = get_connection(database=DB_NAME)
     tables = [
         """
-        CREATE TABLE IF NOT EXISTS `users` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `username` varchar(100) NOT NULL UNIQUE,
-          `password` varchar(100) NOT NULL,
-          `role` varchar(100) DEFAULT '管理员',
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (`id`)
+        CREATE TABLE IF NOT EXISTS `admin` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `username` VARCHAR(50) NOT NULL UNIQUE,
+          `password` VARCHAR(100) NOT NULL,
+          `role` VARCHAR(50) DEFAULT '管理员',
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员'
         """,
         """
-        CREATE TABLE IF NOT EXISTS `yonghu` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `yonghuzhanghao` varchar(200) NOT NULL UNIQUE COMMENT '学号',
-          `yonghuxingming` varchar(200) NOT NULL COMMENT '姓名',
-          `mima` varchar(200) NOT NULL COMMENT '密码',
-          `xingbie` varchar(200) DEFAULT NULL COMMENT '性别',
-          `touxiang` text COMMENT '头像',
-          `dianhuahaoma` varchar(200) DEFAULT NULL COMMENT '电话号码',
-          `xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院',
-          `zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业',
-          `nianji` varchar(200) NOT NULL DEFAULT '' COMMENT '年级',
-          `money` float DEFAULT 0 COMMENT '余额',
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='校园用户'
+        CREATE TABLE IF NOT EXISTS `college` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(100) NOT NULL UNIQUE,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学院'
         """,
         """
-        CREATE TABLE IF NOT EXISTS `shujifenlei` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `shujifenlei` varchar(200) NOT NULL COMMENT '书籍分类',
-          PRIMARY KEY (`id`)
+        CREATE TABLE IF NOT EXISTS `major` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(100) NOT NULL,
+          `college_id` BIGINT,
+          `year` INT,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (college_id) REFERENCES `college`(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专业'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `course` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(100) NOT NULL,
+          `code` VARCHAR(50) UNIQUE,
+          `major_id` BIGINT,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (major_id) REFERENCES `major`(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课程'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `book_category` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(100) NOT NULL UNIQUE,
+          `icon` VARCHAR(50),
+          `sort` INT DEFAULT 0,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='书籍分类'
         """,
         """
-        CREATE TABLE IF NOT EXISTS `ershoushuji` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `shujibianhao` varchar(200) UNIQUE COMMENT '书籍编号',
-          `shujimingcheng` varchar(200) COMMENT '书籍名称',
-          `shujifengmian` text COMMENT '书籍封面',
-          `shujizuozhe` varchar(200) COMMENT '书籍作者',
-          `isbn` varchar(50) NOT NULL DEFAULT '' COMMENT 'ISBN',
-          `kechengbianhao` varchar(100) NOT NULL DEFAULT '' COMMENT '课程编号',
-          `jiaocaibanben` varchar(200) NOT NULL DEFAULT '' COMMENT '教材版本',
-          `shiyongzhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '适用专业',
-          `shiyongkecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '适用课程',
-          `shujifenlei` varchar(200) COMMENT '书籍分类',
-          `xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院',
-          `zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业',
-          `kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程',
-          `banben` varchar(200) NOT NULL DEFAULT '' COMMENT '版本',
-          `shujijianjie` text COMMENT '书籍简介',
-          `xinjiuchengdu` varchar(200) COMMENT '新旧程度',
-          `chubanshe` varchar(200) COMMENT '出版社',
-          `shangjiariqi` date COMMENT '上架日期',
-          `faburenid` bigint NOT NULL DEFAULT 0 COMMENT '发布人ID',
-          `faburenzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人账号',
-          `faburenxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人姓名',
-          `price` float NOT NULL COMMENT '价格',
-          `kucun` int DEFAULT 1 COMMENT '库存数量',
-          PRIMARY KEY (`id`)
+        CREATE TABLE IF NOT EXISTS `condition_level` (
+          `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(50) NOT NULL UNIQUE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='新旧程度'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `user` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `student_no` VARCHAR(50) NOT NULL UNIQUE,
+          `name` VARCHAR(50) NOT NULL,
+          `password` VARCHAR(100) NOT NULL,
+          `gender` VARCHAR(10),
+          `avatar` VARCHAR(255),
+          `phone` VARCHAR(20),
+          `college_id` BIGINT,
+          `major_id` BIGINT,
+          `grade` VARCHAR(20),
+          `balance` DECIMAL(10,2) DEFAULT 0,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (college_id) REFERENCES `college`(id) ON DELETE SET NULL,
+          FOREIGN KEY (major_id) REFERENCES `major`(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='校园用户'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `book` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `isbn` VARCHAR(50) UNIQUE,
+          `title` VARCHAR(200) NOT NULL,
+          `author` VARCHAR(200),
+          `cover` VARCHAR(255),
+          `publisher` VARCHAR(200),
+          `description` TEXT,
+          `category_id` BIGINT,
+          `condition_id` INT,
+          `seller_id` BIGINT NOT NULL,
+          `price` DECIMAL(10,2) NOT NULL,
+          `original_price` DECIMAL(10,2),
+          `stock` INT DEFAULT 1,
+          `status` TINYINT DEFAULT 1,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          `updatetime` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (category_id) REFERENCES `book_category`(id) ON DELETE SET NULL,
+          FOREIGN KEY (condition_id) REFERENCES `condition_level`(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='二手书籍'
         """,
         """
-        CREATE TABLE IF NOT EXISTS `orders` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `orderid` varchar(200) NOT NULL UNIQUE COMMENT '订单编号',
-          `tablename` varchar(200) DEFAULT 'ershoushuji' COMMENT '商品表名',
-          `userid` bigint NOT NULL COMMENT '买家ID',
-          `sellerid` bigint NOT NULL DEFAULT 0 COMMENT '卖家ID',
-          `sellerzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家账号',
-          `sellerxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家姓名',
-          `goodid` bigint NOT NULL COMMENT '商品ID',
-          `goodname` varchar(200) COMMENT '商品名称',
-          `picture` text COMMENT '商品图片',
-          `buynumber` int NOT NULL COMMENT '购买数量',
-          `price` float NOT NULL DEFAULT 0 COMMENT '价格',
-          `discountprice` float DEFAULT 0 COMMENT '折扣价格',
-          `total` float NOT NULL DEFAULT 0 COMMENT '总价格',
-          `discounttotal` float DEFAULT 0 COMMENT '折扣总价格',
-          `type` int DEFAULT 1 COMMENT '支付类型',
-          `status` varchar(200) COMMENT '状态',
-          `address` varchar(200) COMMENT '地址',
-          `tel` varchar(200) COMMENT '电话',
-          `consignee` varchar(200) COMMENT '收货人',
-          `remark` varchar(200) COMMENT '备注',
-          `logistics` text COMMENT '物流',
-          PRIMARY KEY (`id`)
+        CREATE TABLE IF NOT EXISTS `address` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `user_id` BIGINT NOT NULL,
+          `contact_name` VARCHAR(50) NOT NULL,
+          `phone` VARCHAR(20) NOT NULL,
+          `province` VARCHAR(50),
+          `city` VARCHAR(50),
+          `district` VARCHAR(50),
+          `detail` VARCHAR(255) NOT NULL,
+          `is_default` TINYINT DEFAULT 0,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES `user`(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收货地址'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `order` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `order_no` VARCHAR(50) NOT NULL UNIQUE,
+          `user_id` BIGINT NOT NULL,
+          `book_id` BIGINT NOT NULL,
+          `seller_id` BIGINT NOT NULL,
+          `book_title` VARCHAR(200),
+          `book_cover` VARCHAR(255),
+          `book_isbn` VARCHAR(50),
+          `condition_name` VARCHAR(50),
+          `price` DECIMAL(10,2) NOT NULL,
+          `quantity` INT NOT NULL DEFAULT 1,
+          `total_amount` DECIMAL(10,2) NOT NULL,
+          `status` VARCHAR(50),
+          `pay_type` INT,
+          `address_id` BIGINT,
+          `receiver_name` VARCHAR(50),
+          `receiver_phone` VARCHAR(20),
+          `receiver_address` VARCHAR(255),
+          `remark` VARCHAR(255),
+          `logistics` TEXT,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          `updatetime` DATETIME,
+          FOREIGN KEY (user_id) REFERENCES `user`(id) ON DELETE CASCADE,
+          FOREIGN KEY (book_id) REFERENCES `book`(id) ON DELETE RESTRICT,
+          FOREIGN KEY (seller_id) REFERENCES `user`(id) ON DELETE RESTRICT,
+          FOREIGN KEY (address_id) REFERENCES address(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单'
         """,
         """
         CREATE TABLE IF NOT EXISTS `cart` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `tablename` varchar(200) DEFAULT 'ershoushuji' COMMENT '商品表名',
-          `userid` bigint NOT NULL COMMENT '用户ID',
-          `goodid` bigint NOT NULL COMMENT '商品ID',
-          `goodname` varchar(200) COMMENT '商品名称',
-          `picture` text COMMENT '图片',
-          `buynumber` int NOT NULL COMMENT '购买数量',
-          `price` float COMMENT '单价',
-          `discountprice` float COMMENT '会员价',
-          PRIMARY KEY (`id`)
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `user_id` BIGINT NOT NULL,
+          `book_id` BIGINT NOT NULL,
+          `quantity` INT DEFAULT 1,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY `uk_user_book` (`user_id`, `book_id`),
+          FOREIGN KEY (user_id) REFERENCES `user`(id) ON DELETE CASCADE,
+          FOREIGN KEY (book_id) REFERENCES `book`(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车'
         """,
         """
-        CREATE TABLE IF NOT EXISTS `address` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `userid` bigint NOT NULL COMMENT '用户ID',
-          `address` varchar(200) NOT NULL COMMENT '地址',
-          `name` varchar(200) NOT NULL COMMENT '收货人',
-          `phone` varchar(200) NOT NULL COMMENT '电话',
-          `isdefault` varchar(200) NOT NULL COMMENT '是否默认地址',
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='地址'
+        CREATE TABLE IF NOT EXISTS `book_view` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `user_id` BIGINT NOT NULL,
+          `book_id` BIGINT NOT NULL,
+          `view_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES `user`(id) ON DELETE CASCADE,
+          FOREIGN KEY (book_id) REFERENCES `book`(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='浏览历史'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `favorite` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `user_id` BIGINT NOT NULL,
+          `book_id` BIGINT NOT NULL,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY `uk_user_book` (`user_id`, `book_id`),
+          FOREIGN KEY (user_id) REFERENCES `user`(id) ON DELETE CASCADE,
+          FOREIGN KEY (book_id) REFERENCES `book`(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收藏'
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS `review` (
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `user_id` BIGINT NOT NULL,
+          `book_id` BIGINT NOT NULL,
+          `order_id` BIGINT,
+          `rating` TINYINT NOT NULL,
+          `content` TEXT,
+          `reply` TEXT,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES `user`(id) ON DELETE CASCADE,
+          FOREIGN KEY (book_id) REFERENCES `book`(id) ON DELETE CASCADE,
+          FOREIGN KEY (order_id) REFERENCES `order`(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='书籍评分评价'
         """,
         """
         CREATE TABLE IF NOT EXISTS `news` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `title` varchar(200) NOT NULL COMMENT '标题',
-          `introduction` text COMMENT '简介',
-          `picture` text NOT NULL COMMENT '图片',
-          `content` text NOT NULL COMMENT '内容',
-          PRIMARY KEY (`id`)
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          `title` VARCHAR(200) NOT NULL,
+          `introduction` TEXT,
+          `picture` TEXT NOT NULL,
+          `content` TEXT NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公告信息'
         """,
         """
         CREATE TABLE IF NOT EXISTS `aboutus` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `title` varchar(200) NOT NULL,
-          `subtitle` varchar(200),
-          `content` text NOT NULL,
-          `picture1` text,
-          `picture2` text,
-          `picture3` text,
-          PRIMARY KEY (`id`)
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          `title` VARCHAR(200) NOT NULL,
+          `subtitle` VARCHAR(200),
+          `content` TEXT NOT NULL,
+          `picture1` TEXT,
+          `picture2` TEXT,
+          `picture3` TEXT
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='关于我们'
         """,
         """
         CREATE TABLE IF NOT EXISTS `systemintro` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `title` varchar(200) NOT NULL,
-          `subtitle` varchar(200),
-          `content` text NOT NULL,
-          `picture1` text,
-          `picture2` text,
-          `picture3` text,
-          PRIMARY KEY (`id`)
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `addtime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+          `title` VARCHAR(200) NOT NULL,
+          `subtitle` VARCHAR(200),
+          `content` TEXT NOT NULL,
+          `picture1` TEXT,
+          `picture2` TEXT,
+          `picture3` TEXT
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统简介'
         """,
         """
-        CREATE TABLE IF NOT EXISTS `discussershoushuji` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `refid` bigint NOT NULL COMMENT '关联表ID',
-          `userid` bigint NOT NULL COMMENT '用户ID',
-          `avatarurl` text COMMENT '头像',
-          `nickname` varchar(200) COMMENT '用户昵称',
-          `content` text NOT NULL COMMENT '评论内容',
-          `reply` text COMMENT '回复内容',
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='二手书籍评论'
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS `storeup` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `addtime` datetime DEFAULT CURRENT_TIMESTAMP,
-          `userid` bigint NOT NULL COMMENT '用户ID',
-          `refid` bigint COMMENT '商品ID',
-          `tablename` varchar(200) COMMENT '表名',
-          `name` varchar(200) NOT NULL COMMENT '名称',
-          `picture` text NOT NULL COMMENT '图片',
-          `type` varchar(200) DEFAULT '1' COMMENT '类型',
-          `inteltype` varchar(200) COMMENT '推荐类型',
-          `remark` varchar(200) COMMENT '备注',
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收藏'
-        """,
-        """
         CREATE TABLE IF NOT EXISTS `config` (
-          `id` bigint NOT NULL AUTO_INCREMENT,
-          `name` varchar(100) NOT NULL COMMENT '配置参数名称',
-          `value` varchar(100) COMMENT '配置参数值',
-          PRIMARY KEY (`id`)
+          `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(100) NOT NULL,
+          `value` VARCHAR(100)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置'
         """,
     ]
 
-    conn = get_connection(database=DB_NAME)
     try:
         with conn.cursor() as cur:
             for ddl in tables:
@@ -261,82 +293,51 @@ def create_tables():
         conn.close()
 
 
-def ensure_column_exists(table_name, column_name, ddl):
-    conn = get_connection(database=DB_NAME)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(f"SHOW COLUMNS FROM `{table_name}` LIKE %s", (column_name,))
-            if not cur.fetchone():
-                print(f"[MIGRATE] 添加字段 {table_name}.{column_name}")
-                cur.execute(f"ALTER TABLE `{table_name}` ADD COLUMN {ddl}")
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def patch_existing_schema():
-    book_columns = {
-        'isbn': "`isbn` varchar(50) NOT NULL DEFAULT '' COMMENT 'ISBN' AFTER `shujizuozhe`",
-        'kechengbianhao': "`kechengbianhao` varchar(100) NOT NULL DEFAULT '' COMMENT '课程编号' AFTER `isbn`",
-        'jiaocaibanben': "`jiaocaibanben` varchar(200) NOT NULL DEFAULT '' COMMENT '教材版本' AFTER `kechengbianhao`",
-        'shiyongzhuanye': "`shiyongzhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '适用专业' AFTER `jiaocaibanben`",
-        'shiyongkecheng': "`shiyongkecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '适用课程' AFTER `shiyongzhuanye`",
-        'xueyuan': "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `shujifenlei`",
-        'zhuanye': "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`",
-        'kecheng': "`kecheng` varchar(200) NOT NULL DEFAULT '' COMMENT '课程' AFTER `zhuanye`",
-        'banben': "`banben` varchar(200) NOT NULL DEFAULT '' COMMENT '版本' AFTER `kecheng`",
-        'faburenid': "`faburenid` bigint NOT NULL DEFAULT 0 COMMENT '发布人ID' AFTER `shangjiariqi`",
-        'faburenzhanghao': "`faburenzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人账号' AFTER `faburenid`",
-        'faburenxingming': "`faburenxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '发布人姓名' AFTER `faburenzhanghao`",
-        'kucun': "`kucun` int DEFAULT 1 COMMENT '库存数量' AFTER `price`",
-    }
-    for name, ddl in book_columns.items():
-        ensure_column_exists('ershoushuji', name, ddl)
-
-    order_columns = {
-        'sellerid': "`sellerid` bigint NOT NULL DEFAULT 0 COMMENT '卖家ID' AFTER `userid`",
-        'sellerzhanghao': "`sellerzhanghao` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家账号' AFTER `sellerid`",
-        'sellerxingming': "`sellerxingming` varchar(200) NOT NULL DEFAULT '' COMMENT '卖家姓名' AFTER `sellerzhanghao`",
-    }
-    for name, ddl in order_columns.items():
-        ensure_column_exists('orders', name, ddl)
-
-    user_columns = {
-        'xueyuan': "`xueyuan` varchar(200) NOT NULL DEFAULT '' COMMENT '学院' AFTER `dianhuahaoma`",
-        'zhuanye': "`zhuanye` varchar(200) NOT NULL DEFAULT '' COMMENT '专业' AFTER `xueyuan`",
-        'nianji': "`nianji` varchar(200) NOT NULL DEFAULT '' COMMENT '年级' AFTER `zhuanye`",
-    }
-    for name, ddl in user_columns.items():
-        ensure_column_exists('yonghu', name, ddl)
-
-
 def seed_data():
     conn = get_connection(database=DB_NAME)
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM `users`")
+            cur.execute("SELECT COUNT(*) FROM `admin`")
             if cur.fetchone()[0] > 0:
                 print('[SKIP] 初始数据已存在，跳过')
                 return
 
             cur.execute(
-                "INSERT INTO `users` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')"
-            )
-            cur.execute(
-                "INSERT INTO `yonghu` "
-                "(`yonghuzhanghao`, `yonghuxingming`, `mima`, `xingbie`, `dianhuahaoma`, `xueyuan`, `zhuanye`, `nianji`, `money`) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                ('20220001', '张三', '123456', '男', '13800138001', '计算机学院', '软件工程', '2022级', 1000),
-            )
-            cur.execute(
-                "INSERT INTO `yonghu` "
-                "(`yonghuzhanghao`, `yonghuxingming`, `mima`, `xingbie`, `dianhuahaoma`, `xueyuan`, `zhuanye`, `nianji`, `money`) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                ('20220002', '李四', '123456', '女', '13800138002', '经济管理学院', '会计学', '2021级', 500),
+                "INSERT INTO `admin` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')"
             )
 
-            for category in ['文学', '计算机', '历史', '哲学', '经济', '教育', '艺术', '科学']:
-                cur.execute("INSERT INTO `shujifenlei` (`shujifenlei`) VALUES (%s)", (category,))
+            for college in ['计算机学院', '文学院', '经济管理学院', '理学院']:
+                cur.execute("INSERT INTO `college` (`name`) VALUES (%s)", (college,))
+
+            majors = [
+                ('软件工程', 1), ('计算机科学与技术', 1),
+                ('汉语言文学', 2), ('新闻学', 2),
+                ('会计学', 3), ('国际经济与贸易', 3),
+                ('数学与应用数学', 4), ('物理学', 4),
+            ]
+            for name, college_id in majors:
+                cur.execute("INSERT INTO `major` (`name`, `college_id`) VALUES (%s, %s)", (name, college_id))
+
+            courses = [
+                ('软件工程导论', 'CS101', 1), ('数据结构', 'CS102', 1), ('操作系统', 'CS103', 1),
+                ('计算机组成原理', 'CS201', 2), ('数据库系统', 'CS202', 2), ('计算机网络', 'CS203', 2),
+                ('中国现代文学', 'CL101', 3), ('古代汉语', 'CL102', 3),
+                ('新闻采访与写作', 'JM101', 4), ('传播学概论', 'JM102', 4),
+                ('基础会计', 'EM101', 5), ('财务管理', 'EM102', 5),
+                ('国际贸易实务', 'EM201', 6), ('西方经济学', 'EM202', 6),
+                ('高等数学', 'SC101', 7), ('线性代数', 'SC102', 7),
+                ('大学物理', 'SC201', 8), ('理论力学', 'SC202', 8),
+            ]
+            for name, code, major_id in courses:
+                cur.execute("INSERT INTO `course` (`name`, `code`, `major_id`) VALUES (%s, %s, %s)", (name, code, major_id))
+
+            categories = ['文学', '计算机', '历史', '哲学', '经济', '教育', '艺术', '科学']
+            for i, cat in enumerate(categories, 1):
+                cur.execute("INSERT INTO `book_category` (`name`, `sort`) VALUES (%s, %s)", (cat, i))
+
+            conditions = ['全新', '九成新', '八成新', '七成新', '六成及以下']
+            for cond in conditions:
+                cur.execute("INSERT INTO `condition_level` (`name`) VALUES (%s)", (cond,))
 
             for name, value in [
                 ('picture1', 'upload/picture1.jpg'),
@@ -373,7 +374,6 @@ def migrate():
     print('========== 开始数据库迁移 ==========')
     create_database()
     create_tables()
-    patch_existing_schema()
     seed_data()
     print('========== 迁移完成 ==========')
 

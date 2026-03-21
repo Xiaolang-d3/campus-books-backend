@@ -1,45 +1,44 @@
-from models import db, Storeup
+from models import Favorite, BookView, Book, db
 from utils import model_to_dict, paginate_query, apply_filters, generate_id
 
 
-class StoreupService:
+class FavoriteService:
     @staticmethod
     def page(params, identity=None):
-        query = Storeup.query
+        query = Favorite.query
         if identity and identity.get('role') != '管理员':
-            query = query.filter_by(userid=identity['id'])
-        query = apply_filters(Storeup, query, params, like_fields=['name'], eq_fields=['type', 'tablename'])
-        return paginate_query(Storeup, query, params)
+            query = query.filter_by(user_id=identity['id'])
+        query = apply_filters(Favorite, query, params, eq_fields=['user_id', 'book_id'])
+        return paginate_query(Favorite, query, params)
 
     @staticmethod
     def list_all(params):
-        query = Storeup.query
-        query = apply_filters(Storeup, query, params, like_fields=['name'], eq_fields=['type', 'userid', 'tablename', 'refid'])
-        return paginate_query(Storeup, query, params)
+        query = Favorite.query
+        query = apply_filters(Favorite, query, params, eq_fields=['user_id', 'book_id'])
+        return paginate_query(Favorite, query, params)
 
     @staticmethod
     def get_by_id(obj_id):
-        return model_to_dict(Storeup.query.get(obj_id))
+        fav = Favorite.query.get(obj_id)
+        if not fav:
+            return None
+        d = model_to_dict(fav)
+        if fav.book_id:
+            book = Book.query.get(fav.book_id)
+            if book:
+                d['book_title'] = book.title
+                d['book_cover'] = book.cover
+                d['book_price'] = book.price
+        return d
 
     @staticmethod
     def save(data):
         data['id'] = generate_id()
-        obj = Storeup(**data)
+        obj = Favorite(**data)
         db.session.add(obj)
         db.session.commit()
 
     @staticmethod
-    def update(data):
-        obj = Storeup.query.get(data.get('id'))
-        if not obj:
-            return False, '收藏不存在'
-        for k, v in data.items():
-            if hasattr(obj, k):
-                setattr(obj, k, v)
-        db.session.commit()
-        return True, None
-
-    @staticmethod
     def delete(ids):
-        Storeup.query.filter(Storeup.id.in_(ids)).delete(synchronize_session=False)
+        Favorite.query.filter(Favorite.id.in_(ids)).delete(synchronize_session=False)
         db.session.commit()

@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from common import R_ok, R_error
 from core import login_required_custom, get_jwt_identity
-from services.ershoushuji_service import ErshoushujiService
+from services.ershoushuji_service import BookService
 
 ershoushuji_bp = Blueprint('ershoushuji', __name__)
 
@@ -10,23 +10,23 @@ ershoushuji_bp = Blueprint('ershoushuji', __name__)
 @login_required_custom
 def page():
     identity = get_jwt_identity()
-    return R_ok(data=ErshoushujiService.page(request.args.to_dict(), identity))
+    return R_ok(data=BookService.page(request.args.to_dict(), identity))
 
 
 @ershoushuji_bp.route('/list', methods=['GET'])
 def list_all():
-    return R_ok(data=ErshoushujiService.list_all(request.args.to_dict()))
+    return R_ok(data=BookService.list_all(request.args.to_dict()))
 
 
 @ershoushuji_bp.route('/info/<int:id>', methods=['GET'])
 @login_required_custom
 def info(id):
-    return R_ok(data=ErshoushujiService.get_by_id(id))
+    return R_ok(data=BookService.get_by_id(id))
 
 
 @ershoushuji_bp.route('/detail/<int:id>', methods=['GET'])
 def detail(id):
-    return R_ok(data=ErshoushujiService.get_by_id(id))
+    return R_ok(data=BookService.get_by_id(id))
 
 
 @ershoushuji_bp.route('/save', methods=['POST'])
@@ -34,7 +34,7 @@ def detail(id):
 def save():
     identity = get_jwt_identity()
     try:
-        book = ErshoushujiService.save(request.json, identity)
+        book = BookService.save(request.json, identity)
         return R_ok(data=book)
     except ValueError as e:
         return R_error(str(e))
@@ -43,7 +43,7 @@ def save():
 @ershoushuji_bp.route('/add', methods=['POST'])
 def add():
     try:
-        book = ErshoushujiService.save(request.json)
+        book = BookService.save(request.json)
         return R_ok(data=book)
     except ValueError as e:
         return R_error(str(e))
@@ -53,7 +53,7 @@ def add():
 @login_required_custom
 def update():
     identity = get_jwt_identity()
-    ok, err = ErshoushujiService.update(request.json, identity)
+    ok, err = BookService.update(request.json, identity)
     return R_ok() if ok else R_error(err)
 
 
@@ -61,5 +61,5 @@ def update():
 @login_required_custom
 def delete():
     identity = get_jwt_identity()
-    ErshoushujiService.delete(request.json, identity)
+    BookService.delete(request.json, identity)
     return R_ok()

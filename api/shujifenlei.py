@@ -1,11 +1,11 @@
 from flask import Blueprint, request
 from common import R_ok, R_error
 from core import login_required_custom
-from models import Shujifenlei
+from models import BookCategory
 from services.crud_service import CrudService
 
 shujifenlei_bp = Blueprint('shujifenlei', __name__)
-_svc = CrudService(Shujifenlei, like_fields=['shujifenlei'], not_found_msg='分类不存在')
+_svc = CrudService(BookCategory, like_fields=['name'], not_found_msg='分类不存在')
 
 
 @shujifenlei_bp.route('/page', methods=['GET'])
@@ -17,6 +17,11 @@ def page():
 @shujifenlei_bp.route('/list', methods=['GET'])
 def list_all():
     return R_ok(data=_svc.list_all(request.args.to_dict()))
+
+
+@shujifenlei_bp.route('/option', methods=['GET'])
+def option():
+    return R_ok(data=_svc.option())
 
 
 @shujifenlei_bp.route('/info/<int:id>', methods=['GET'])

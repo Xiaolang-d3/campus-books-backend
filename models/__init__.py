@@ -5,135 +5,230 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 
-class Users(db.Model):
-    __tablename__ = 'users'
+# =====================================================================
+# 管理员
+# =====================================================================
+class Admin(db.Model):
+    __tablename__ = 'admin'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(100), nullable=False, unique=True)
+    username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(100), default='管理员')
+    role = db.Column(db.String(50), default='管理员')
     addtime = db.Column(db.DateTime, default=datetime.now)
 
 
-class Yonghu(db.Model):
-    __tablename__ = 'yonghu'
+# =====================================================================
+# 字典表
+# =====================================================================
+class College(db.Model):
+    __tablename__ = 'college'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    yonghuzhanghao = db.Column(db.String(200), nullable=False, unique=True, comment='学号')
-    yonghuxingming = db.Column(db.String(200), nullable=False, comment='姓名')
-    mima = db.Column(db.String(200), nullable=False, comment='密码')
-    xingbie = db.Column(db.String(200), comment='性别')
-    touxiang = db.Column(db.Text, comment='头像')
-    dianhuahaoma = db.Column(db.String(200), comment='电话号码')
-    xueyuan = db.Column(db.String(200), nullable=False, default='', comment='学院')
-    zhuanye = db.Column(db.String(200), nullable=False, default='', comment='专业')
-    nianji = db.Column(db.String(200), nullable=False, default='', comment='年级')
-    money = db.Column(db.Float, default=0, comment='余额')
+
+    majors = db.relationship('Major', backref='college', lazy=True)
 
 
-class Shujifenlei(db.Model):
-    __tablename__ = 'shujifenlei'
+class Major(db.Model):
+    __tablename__ = 'major'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    college_id = db.Column(db.BigInteger, db.ForeignKey('college.id', ondelete='SET NULL'))
+    year = db.Column(db.Integer)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    shujifenlei = db.Column(db.String(200), nullable=False, comment='书籍分类')
+
+    courses = db.relationship('Course', backref='major', lazy=True)
 
 
-class Ershoushuji(db.Model):
-    __tablename__ = 'ershoushuji'
+class Course(db.Model):
+    __tablename__ = 'course'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    code = db.Column(db.String(50), unique=True)
+    major_id = db.Column(db.BigInteger, db.ForeignKey('major.id', ondelete='SET NULL'))
     addtime = db.Column(db.DateTime, default=datetime.now)
-    shujibianhao = db.Column(db.String(200), unique=True, comment='书籍编号')
-    shujimingcheng = db.Column(db.String(200), comment='书籍名称')
-    shujifengmian = db.Column(db.Text, comment='书籍封面')
-    shujizuozhe = db.Column(db.String(200), comment='书籍作者')
-    isbn = db.Column(db.String(50), nullable=False, default='', comment='ISBN')
-    kechengbianhao = db.Column(db.String(100), nullable=False, default='', comment='课程编号')
-    jiaocaibanben = db.Column(db.String(200), nullable=False, default='', comment='教材版本')
-    shiyongzhuanye = db.Column(db.String(200), nullable=False, default='', comment='适用专业')
-    shiyongkecheng = db.Column(db.String(200), nullable=False, default='', comment='适用课程')
-    shujifenlei = db.Column(db.String(200), comment='书籍分类')
-    xueyuan = db.Column(db.String(200), nullable=False, default='', comment='学院')
-    zhuanye = db.Column(db.String(200), nullable=False, default='', comment='专业')
-    kecheng = db.Column(db.String(200), nullable=False, default='', comment='课程')
-    banben = db.Column(db.String(200), nullable=False, default='', comment='版本')
-    shujijianjie = db.Column(db.Text, comment='书籍简介')
-    xinjiuchengdu = db.Column(db.String(200), comment='新旧程度')
-    chubanshe = db.Column(db.String(200), comment='出版社')
-    shangjiariqi = db.Column(db.Date, comment='上架日期')
-    faburenid = db.Column(db.BigInteger, nullable=False, default=0, comment='发布人ID')
-    faburenzhanghao = db.Column(db.String(200), nullable=False, default='', comment='发布人账号')
-    faburenxingming = db.Column(db.String(200), nullable=False, default='', comment='发布人姓名')
-    price = db.Column(db.Float, nullable=False, comment='价格')
-    kucun = db.Column(db.Integer, default=1, comment='库存数量')
 
 
-class Orders(db.Model):
-    __tablename__ = 'orders'
+class BookCategory(db.Model):
+    __tablename__ = 'book_category'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    icon = db.Column(db.String(50))
+    sort = db.Column(db.Integer, default=0)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    orderid = db.Column(db.String(200), nullable=False, unique=True, comment='订单编号')
-    tablename = db.Column(db.String(200), default='ershoushuji', comment='商品表名')
-    userid = db.Column(db.BigInteger, nullable=False, comment='买家ID')
-    sellerid = db.Column(db.BigInteger, nullable=False, default=0, comment='卖家ID')
-    sellerzhanghao = db.Column(db.String(200), nullable=False, default='', comment='卖家账号')
-    sellerxingming = db.Column(db.String(200), nullable=False, default='', comment='卖家姓名')
-    goodid = db.Column(db.BigInteger, nullable=False, comment='商品ID')
-    goodname = db.Column(db.String(200), comment='商品名称')
-    picture = db.Column(db.Text, comment='商品图片')
-    buynumber = db.Column(db.Integer, nullable=False, comment='购买数量')
-    price = db.Column(db.Float, nullable=False, default=0, comment='价格')
-    discountprice = db.Column(db.Float, default=0, comment='折扣价格')
-    total = db.Column(db.Float, nullable=False, default=0, comment='总价格')
-    discounttotal = db.Column(db.Float, default=0, comment='折扣总价格')
-    type = db.Column(db.Integer, default=1, comment='支付类型')
-    status = db.Column(db.String(200), comment='状态')
-    address = db.Column(db.String(200), comment='地址')
-    tel = db.Column(db.String(200), comment='电话')
-    consignee = db.Column(db.String(200), comment='收货人')
-    remark = db.Column(db.String(200), comment='备注')
-    logistics = db.Column(db.Text, comment='物流')
 
 
-class Cart(db.Model):
-    __tablename__ = 'cart'
+class ConditionLevel(db.Model):
+    __tablename__ = 'condition_level'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+
+
+# =====================================================================
+# 用户表
+# =====================================================================
+class User(db.Model):
+    __tablename__ = 'user'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    student_no = db.Column(db.String(50), nullable=False, unique=True)
+    name = db.Column(db.String(50), nullable=False)
+    password = db.Column(db.String(100), nullable=False)
+    gender = db.Column(db.String(10))
+    avatar = db.Column(db.String(255))
+    phone = db.Column(db.String(20))
+    college_id = db.Column(db.BigInteger, db.ForeignKey('college.id', ondelete='SET NULL'))
+    major_id = db.Column(db.BigInteger, db.ForeignKey('major.id', ondelete='SET NULL'))
+    grade = db.Column(db.String(20))
+    balance = db.Column(db.Numeric(10, 2), default=0)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    tablename = db.Column(db.String(200), default='ershoushuji', comment='商品表名')
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
-    goodid = db.Column(db.BigInteger, nullable=False, comment='商品ID')
-    goodname = db.Column(db.String(200), comment='商品名称')
-    picture = db.Column(db.Text, comment='图片')
-    buynumber = db.Column(db.Integer, nullable=False, comment='购买数量')
-    price = db.Column(db.Float, comment='单价')
-    discountprice = db.Column(db.Float, comment='会员价')
+
+    college = db.relationship('College', backref='users')
+    major = db.relationship('Major', backref='users')
 
 
+# =====================================================================
+# 书籍表
+# =====================================================================
+class Book(db.Model):
+    __tablename__ = 'book'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    isbn = db.Column(db.String(50), unique=True)
+    title = db.Column(db.String(200), nullable=False)
+    author = db.Column(db.String(200))
+    cover = db.Column(db.String(255))
+    publisher = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    category_id = db.Column(db.BigInteger, db.ForeignKey('book_category.id', ondelete='SET NULL'))
+    condition_id = db.Column(db.Integer, db.ForeignKey('condition_level.id', ondelete='SET NULL'))
+    seller_id = db.Column(db.BigInteger, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    original_price = db.Column(db.Numeric(10, 2))
+    stock = db.Column(db.Integer, default=1)
+    status = db.Column(db.SmallInteger, default=1)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+    updatetime = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    category = db.relationship('BookCategory', backref='books')
+    condition = db.relationship('ConditionLevel', backref='books')
+    seller = db.relationship('User', foreign_keys=[seller_id])
+
+
+# =====================================================================
+# 收货地址表
+# =====================================================================
 class Address(db.Model):
     __tablename__ = 'address'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    contact_name = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    province = db.Column(db.String(50))
+    city = db.Column(db.String(50))
+    district = db.Column(db.String(50))
+    detail = db.Column(db.String(255), nullable=False)
+    is_default = db.Column(db.SmallInteger, default=0)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
-    address = db.Column(db.String(200), nullable=False, comment='地址')
-    name = db.Column(db.String(200), nullable=False, comment='收货人')
-    phone = db.Column(db.String(200), nullable=False, comment='电话')
-    isdefault = db.Column(db.String(200), nullable=False, comment='是否默认地址')
 
 
+# =====================================================================
+# 订单表
+# =====================================================================
+class Order(db.Model):
+    __tablename__ = 'order'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    order_no = db.Column(db.String(50), nullable=False, unique=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    book_id = db.Column(db.BigInteger, nullable=False)
+    seller_id = db.Column(db.BigInteger, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    # 快照字段
+    book_title = db.Column(db.String(200))
+    book_cover = db.Column(db.String(255))
+    book_isbn = db.Column(db.String(50))
+    condition_name = db.Column(db.String(50))
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    total_amount = db.Column(db.Numeric(10, 2), nullable=False)
+    status = db.Column(db.String(50))
+    pay_type = db.Column(db.Integer)
+    address_id = db.Column(db.BigInteger)
+    receiver_name = db.Column(db.String(50))
+    receiver_phone = db.Column(db.String(20))
+    receiver_address = db.Column(db.String(255))
+    remark = db.Column(db.String(255))
+    logistics = db.Column(db.Text)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+    updatetime = db.Column(db.DateTime)
+
+
+# =====================================================================
+# 购物车表
+# =====================================================================
+class Cart(db.Model):
+    __tablename__ = 'cart'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    book_id = db.Column(db.BigInteger, nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+
+
+# =====================================================================
+# AI 推荐表
+# =====================================================================
+class BookView(db.Model):
+    __tablename__ = 'book_view'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    book_id = db.Column(db.BigInteger, nullable=False)
+    view_time = db.Column(db.DateTime, default=datetime.now)
+
+
+class Favorite(db.Model):
+    __tablename__ = 'favorite'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    book_id = db.Column(db.BigInteger, nullable=False)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+
+
+class Review(db.Model):
+    __tablename__ = 'review'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    book_id = db.Column(db.BigInteger, nullable=False)
+    order_id = db.Column(db.BigInteger)
+    rating = db.Column(db.SmallInteger, nullable=False)
+    content = db.Column(db.Text)
+    reply = db.Column(db.Text)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+
+
+# =====================================================================
+# 内容表
+# =====================================================================
 class News(db.Model):
     __tablename__ = 'news'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     addtime = db.Column(db.DateTime, default=datetime.now)
-    title = db.Column(db.String(200), nullable=False, comment='标题')
-    introduction = db.Column(db.Text, comment='简介')
-    picture = db.Column(db.Text, nullable=False, comment='图片')
-    content = db.Column(db.Text, nullable=False, comment='内容')
+    title = db.Column(db.String(200), nullable=False)
+    introduction = db.Column(db.Text)
+    picture = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=False)
 
 
 class Aboutus(db.Model):
@@ -162,37 +257,9 @@ class Systemintro(db.Model):
     picture3 = db.Column(db.Text)
 
 
-class Discussershoushuji(db.Model):
-    __tablename__ = 'discussershoushuji'
-
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    addtime = db.Column(db.DateTime, default=datetime.now)
-    refid = db.Column(db.BigInteger, nullable=False, comment='关联表ID')
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
-    avatarurl = db.Column(db.Text, comment='头像')
-    nickname = db.Column(db.String(200), comment='用户昵称')
-    content = db.Column(db.Text, nullable=False, comment='评论内容')
-    reply = db.Column(db.Text, comment='回复内容')
-
-
-class Storeup(db.Model):
-    __tablename__ = 'storeup'
-
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    addtime = db.Column(db.DateTime, default=datetime.now)
-    userid = db.Column(db.BigInteger, nullable=False, comment='用户ID')
-    refid = db.Column(db.BigInteger, comment='商品ID')
-    tablename = db.Column(db.String(200), comment='表名')
-    name = db.Column(db.String(200), nullable=False, comment='名称')
-    picture = db.Column(db.Text, nullable=False, comment='图片')
-    type = db.Column(db.String(200), default='1', comment='类型')
-    inteltype = db.Column(db.String(200), comment='推荐类型')
-    remark = db.Column(db.String(200), comment='备注')
-
-
 class ConfigModel(db.Model):
     __tablename__ = 'config'
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(100), nullable=False, comment='配置参数名称')
-    value = db.Column(db.String(100), comment='配置参数值')
+    name = db.Column(db.String(100), nullable=False)
+    value = db.Column(db.String(100))

@@ -1,73 +1,77 @@
 from sqlalchemy import text
 
-from models import Ershoushuji, Orders, Yonghu, db
+from models import Book, Order, User, db
 from utils import apply_filters, generate_id, generate_order_id, model_to_dict, paginate_query
 
 
-class OrdersService:
+class OrderService:
     PAID_STATUSES = {'已支付', '已发货', '已完成'}
 
     @staticmethod
     def page(params, identity=None):
-        query = Orders.query
-        if identity and identity.get('tableName') != 'users':
+        query = Order.query
+        if identity and identity.get('tableName') != 'admin':
             if params.get('viewType') == 'sell':
-                query = query.filter_by(sellerid=identity['id'])
+                query = query.filter_by(seller_id=identity['id'])
             else:
-                query = query.filter_by(userid=identity['id'])
+                query = query.filter_by(user_id=identity['id'])
 
         status = params.get('status')
         if status:
             query = query.filter_by(status=status)
 
         query = apply_filters(
-            Orders,
+            Order,
             query,
             params,
-            like_fields=['orderid', 'goodname', 'sellerzhanghao', 'sellerxingming'],
+            like_fields=['order_no', 'book_title'],
         )
-        return paginate_query(Orders, query, params)
+        return paginate_query(Order, query, params)
 
     @staticmethod
     def list_all(params):
-        query = Orders.query
+        query = Order.query
         query = apply_filters(
-            Orders,
+            Order,
             query,
             params,
-            like_fields=['orderid', 'goodname', 'sellerzhanghao', 'sellerxingming'],
+            like_fields=['order_no', 'book_title'],
         )
-        return paginate_query(Orders, query, params)
+        return paginate_query(Order, query, params)
 
     @staticmethod
     def get_by_id(order_id):
-        return model_to_dict(Orders.query.get(order_id))
+        return model_to_dict(Order.query.get(order_id))
 
     @staticmethod
     def save(data, identity=None):
-        goodid = data.get('goodid')
-        buynumber = int(data.get('buynumber', 1) or 1)
-        book = Ershoushuji.query.get(goodid) if goodid else None
+        book_id = data.get('book_id')
+        quantity = int(data.get('quantity', 1) or 1)
+        book = Book.query.get(book_id) if book_id else None
         if not book:
             raise ValueError('书籍不存在')
 
-        ok, err = OrdersService._check_book_available(book, buynumber, identity)
+        ok, err = OrderService._check_book_available(book, quantity, identity)
         if not ok:
             raise ValueError(err)
 
         payload = dict(data)
         payload['id'] = generate_id()
-        payload['orderid'] = payload.get('orderid') or generate_order_id()
-        payload['userid'] = identity['id'] if identity else payload.get('userid')
-        payload['sellerid'] = book.faburenid
-        payload['sellerzhanghao'] = book.faburenzhanghao
-        payload['sellerxingming'] = book.faburenxingming
+        payload['order_no'] = payload.get('order_no') or generate_order_id()
+        payload['user_id'] = identity['id'] if identity else payload.get('user_id')
+        payload['seller_id'] = book.seller_id
+        # 快照字段
+        payload['book_title'] = book.title
+        payload['book_cover'] = book.cover
+        payload['book_isbn'] = book.isbn
+        if book.condition:
+            payload['condition_name'] = book.condition.name
         payload['status'] = payload.get('status') or '未支付'
 
-        order = Orders(**payload)
+        order = Order(**payload)
         db.session.add(order)
 
-        ok, err = OrdersService._lock_stock(book, buynumber, payload['status'])
+        ok, err = OrderService._lock_stock(book, quantity, payload['status'])
         if not ok:
             db.session.rollback()
             raise ValueError(err)
@@ -76,35 +80,35 @@ class OrdersService:
         return model_to_dict(order)
 
     @staticmethod
-    def _check_book_available(book, buynumber, identity):
-        if identity and book.faburenid == identity['id']:
+    def _check_book_available(book, quantity, identity):
+        if identity and book.seller_id == identity['id']:
             return False, '不能购买自己发布的书籍'
-        if int(book.kucun or 0) < buynumber:
-            return False, f'库存不足，当前库存：{book.kucun or 0}'
+        if int(book.stock or 0) < quantity:
+            return False, f'库存不足，当前库存：{book.stock or 0}'
         return True, None
 
     @staticmethod
-    def _lock_stock(book, buynumber, status):
+    def _lock_stock(book, quantity, status):
         if status == '已退款':
             return True, None
-        if int(book.kucun or 0) < buynumber:
-            return False, f'库存不足，当前库存：{book.kucun or 0}'
-        book.kucun = int(book.kucun or 0) - buynumber
+        if int(book.stock or 0) < quantity:
+            return False, f'库存不足，当前库存：{book.stock or 0}'
+        book.stock = int(book.stock or 0) - quantity
         return True, None
 
     @staticmethod
     def update(data, identity=None):
-        order = Orders.query.get(data.get('id'))
+        order = Order.query.get(data.get('id'))
         if not order:
             return False, '订单不存在'
 
         new_status = data.get('status')
         old_status = order.status
-        if not OrdersService._can_update_order(order, identity, new_status):
+        if not OrderService._can_update_order(order, identity, new_status):
             return False, '无权修改该订单'
 
         if new_status and new_status != old_status:
-            ok, err = OrdersService._apply_status_transition(order, old_status, new_status)
+            ok, err = OrderService._apply_status_transition(order, old_status, new_status)
             if not ok:
                 db.session.rollback()
                 return False, err
@@ -118,10 +122,10 @@ class OrdersService:
     @staticmethod
     def _apply_status_transition(order, old_status, new_status):
         if old_status == '未支付' and new_status == '已支付':
-            return OrdersService._apply_payment(order)
+            return OrderService._apply_payment(order)
 
         if new_status == '已退款' and old_status != '已退款':
-            ok, err = OrdersService._apply_refund(order, old_status)
+            ok, err = OrderService._apply_refund(order, old_status)
             if not ok:
                 return False, err
             return True, None
@@ -130,66 +134,66 @@ class OrdersService:
 
     @staticmethod
     def _apply_payment(order):
-        buyer = Yonghu.query.get(order.userid)
+        buyer = User.query.get(order.user_id)
         if not buyer:
             return False, '买家不存在'
 
-        total = float(order.total or 0)
-        if float(buyer.money or 0) < total:
+        total = float(order.total_amount or 0)
+        if float(buyer.balance or 0) < total:
             return False, '余额不足，无法支付'
 
-        seller = Yonghu.query.get(order.sellerid) if order.sellerid else None
-        buyer.money = float(buyer.money or 0) - total
+        seller = User.query.get(order.seller_id) if order.seller_id else None
+        buyer.balance = float(buyer.balance or 0) - total
         if seller:
-            seller.money = float(seller.money or 0) + total
+            seller.balance = float(seller.balance or 0) + total
         return True, None
 
     @staticmethod
     def _apply_refund(order, old_status):
-        book = Ershoushuji.query.get(order.goodid) if order.goodid else None
+        book = Book.query.get(order.book_id) if order.book_id else None
         if book:
-            book.kucun = int(book.kucun or 0) + int(order.buynumber or 0)
+            book.stock = int(book.stock or 0) + int(order.quantity or 0)
 
-        if old_status in OrdersService.PAID_STATUSES:
-            total = float(order.total or 0)
-            buyer = Yonghu.query.get(order.userid)
-            seller = Yonghu.query.get(order.sellerid) if order.sellerid else None
+        if old_status in OrderService.PAID_STATUSES:
+            total = float(order.total_amount or 0)
+            buyer = User.query.get(order.user_id)
+            seller = User.query.get(order.seller_id) if order.seller_id else None
             if buyer:
-                buyer.money = float(buyer.money or 0) + total
+                buyer.balance = float(buyer.balance or 0) + total
             if seller:
-                seller.money = float(seller.money or 0) - total
+                seller.balance = float(seller.balance or 0) - total
         return True, None
 
     @staticmethod
     def _can_update_order(order, identity, new_status):
         if not identity:
             return True
-        if identity.get('tableName') == 'users':
+        if identity.get('tableName') == 'admin':
             return True
         if new_status == '已发货':
-            return order.sellerid == identity['id']
-        return order.userid == identity['id']
+            return order.seller_id == identity['id']
+        return order.user_id == identity['id']
 
     @staticmethod
     def delete(ids, identity=None):
-        query = Orders.query.filter(Orders.id.in_(ids))
-        if identity and identity.get('tableName') != 'users':
-            query = query.filter(Orders.userid == identity['id'])
+        query = Order.query.filter(Order.id.in_(ids))
+        if identity and identity.get('tableName') != 'admin':
+            query = query.filter(Order.user_id == identity['id'])
 
         orders = query.all()
         for order in orders:
-            if order.status not in ['已完成', '已退款'] and order.goodid and order.buynumber:
-                book = Ershoushuji.query.get(order.goodid)
+            if order.status not in ['已完成', '已退款'] and order.book_id and order.quantity:
+                book = Book.query.get(order.book_id)
                 if book:
-                    book.kucun = int(book.kucun or 0) + int(order.buynumber or 0)
-            if order.status in OrdersService.PAID_STATUSES:
-                buyer = Yonghu.query.get(order.userid)
-                seller = Yonghu.query.get(order.sellerid) if order.sellerid else None
-                total = float(order.total or 0)
+                    book.stock = int(book.stock or 0) + int(order.quantity or 0)
+            if order.status in OrderService.PAID_STATUSES:
+                buyer = User.query.get(order.user_id)
+                seller = User.query.get(order.seller_id) if order.seller_id else None
+                total = float(order.total_amount or 0)
                 if buyer:
-                    buyer.money = float(buyer.money or 0) + total
+                    buyer.balance = float(buyer.balance or 0) + total
                 if seller:
-                    seller.money = float(seller.money or 0) - total
+                    seller.balance = float(seller.balance or 0) - total
 
         query.delete(synchronize_session=False)
         db.session.commit()
@@ -198,7 +202,7 @@ class OrdersService:
     def value_stat(x_col, y_col):
         sql = text(
             f"SELECT `{x_col}` as name, SUM(`{y_col}`) as value "
-            f"FROM orders WHERE status IN ({OrdersService._paid_status_sql()}) GROUP BY `{x_col}`"
+            f"FROM `order` WHERE status IN ({OrderService._paid_status_sql()}) GROUP BY `{x_col}`"
         )
         result = db.session.execute(sql)
         return [{'name': str(row[0]) if row[0] else '', 'value': float(row[1] or 0)} for row in result]
@@ -208,7 +212,7 @@ class OrdersService:
         time_format = {'日': '%Y-%m-%d', '月': '%Y-%m', '年': '%Y'}.get(time_stat_type, '%Y-%m-%d')
         sql = text(
             f"SELECT DATE_FORMAT(`{x_col}`, :fmt) as name, SUM(`{y_col}`) as value "
-            f"FROM orders WHERE status IN ({OrdersService._paid_status_sql()}) GROUP BY name ORDER BY name"
+            f"FROM `order` WHERE status IN ({OrderService._paid_status_sql()}) GROUP BY name ORDER BY name"
         )
         result = db.session.execute(sql, {'fmt': time_format})
         return [{'name': str(row[0]) if row[0] else '', 'value': float(row[1] or 0)} for row in result]
@@ -217,11 +221,11 @@ class OrdersService:
     def group_stat(column_name):
         sql = text(
             f"SELECT `{column_name}` as name, COUNT(*) as value "
-            f"FROM orders WHERE status IN ({OrdersService._paid_status_sql()}) GROUP BY `{column_name}`"
+            f"FROM `order` WHERE status IN ({OrderService._paid_status_sql()}) GROUP BY `{column_name}`"
         )
         result = db.session.execute(sql)
         return [{'name': str(row[0]) if row[0] else '', 'value': int(row[1] or 0)} for row in result]
 
     @staticmethod
     def _paid_status_sql():
-        return "', '".join(OrdersService.PAID_STATUSES).join(["'", "'"])
+        return "', '".join(OrderService.PAID_STATUSES).join(["'", "'"])

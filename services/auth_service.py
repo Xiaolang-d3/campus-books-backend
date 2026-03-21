@@ -3,7 +3,7 @@ import json
 from flask_jwt_extended import create_access_token
 from werkzeug.security import check_password_hash
 
-from models import Users, Yonghu
+from models import Admin, User
 
 
 class AuthService:
@@ -16,15 +16,15 @@ class AuthService:
     @staticmethod
     def login(username, password, role):
         if role == 'admin':
-            user = Users.query.filter_by(username=username).first()
+            user = Admin.query.filter_by(username=username).first()
             if not user or not AuthService._verify_password(user.password, password):
                 return None, '账号或密码不正确'
-            identity_data = {'id': user.id, 'username': username, 'tableName': 'users', 'role': '管理员'}
+            identity_data = {'id': user.id, 'username': username, 'tableName': 'admin', 'role': '管理员'}
         elif role == 'yonghu':
-            user = Yonghu.query.filter_by(yonghuzhanghao=username).first()
-            if not user or not AuthService._verify_password(user.mima, password):
+            user = User.query.filter_by(student_no=username).first()
+            if not user or not AuthService._verify_password(user.password, password):
                 return None, '账号或密码不正确'
-            identity_data = {'id': user.id, 'username': username, 'tableName': 'yonghu', 'role': '用户'}
+            identity_data = {'id': user.id, 'username': username, 'tableName': 'user', 'role': '用户'}
         else:
             return None, '角色类型错误'
 

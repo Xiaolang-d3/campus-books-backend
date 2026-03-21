@@ -1,39 +1,39 @@
-from models import db, Discussershoushuji
+from models import Review, db
 from utils import model_to_dict, paginate_query, apply_filters, generate_id
 
 
-class DiscussService:
+class ReviewService:
     @staticmethod
     def page(params):
-        query = Discussershoushuji.query
-        query = apply_filters(Discussershoushuji, query, params, like_fields=['nickname', 'content'])
-        return paginate_query(Discussershoushuji, query, params)
+        query = Review.query
+        query = apply_filters(Review, query, params, like_fields=['content'])
+        return paginate_query(Review, query, params)
 
     @staticmethod
     def list_all(params):
-        query = Discussershoushuji.query
-        refid = params.get('refid')
+        refid = params.get('book_id') or params.get('refid')
+        query = Review.query
         if refid:
-            query = query.filter_by(refid=int(refid))
-        query = apply_filters(Discussershoushuji, query, params, like_fields=['nickname'])
-        return paginate_query(Discussershoushuji, query, params)
+            query = query.filter_by(book_id=int(refid))
+        query = apply_filters(Review, query, params, like_fields=['content'])
+        return paginate_query(Review, query, params)
 
     @staticmethod
     def get_by_id(obj_id):
-        return model_to_dict(Discussershoushuji.query.get(obj_id))
+        return model_to_dict(Review.query.get(obj_id))
 
     @staticmethod
     def save(data):
         data['id'] = generate_id()
-        obj = Discussershoushuji(**data)
+        obj = Review(**data)
         db.session.add(obj)
         db.session.commit()
 
     @staticmethod
     def update(data):
-        obj = Discussershoushuji.query.get(data.get('id'))
+        obj = Review.query.get(data.get('id'))
         if not obj:
-            return False, '评论不存在'
+            return False, '评价不存在'
         for k, v in data.items():
             if hasattr(obj, k):
                 setattr(obj, k, v)
@@ -42,5 +42,5 @@ class DiscussService:
 
     @staticmethod
     def delete(ids):
-        Discussershoushuji.query.filter(Discussershoushuji.id.in_(ids)).delete(synchronize_session=False)
+        Review.query.filter(Review.id.in_(ids)).delete(synchronize_session=False)
         db.session.commit()

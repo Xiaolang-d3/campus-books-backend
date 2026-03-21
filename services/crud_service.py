@@ -1,4 +1,3 @@
-"""Generic CRUD service for simple entities."""
 from models import db
 from utils import model_to_dict, paginate_query, apply_filters, generate_id
 
@@ -21,6 +20,10 @@ class CrudService:
         query = apply_filters(self.model, query, params,
                               like_fields=self.like_fields, eq_fields=self.eq_fields)
         return paginate_query(self.model, query, params)
+
+    def option(self):
+        objs = self.model.query.all()
+        return [model_to_dict(obj) for obj in objs]
 
     def get_by_id(self, obj_id):
         return model_to_dict(self.model.query.get(obj_id))

@@ -1,40 +1,60 @@
-from models import db, Cart
+from models import Cart, Book, db
 from utils import model_to_dict, paginate_query, apply_filters, generate_id
-from services.ershoushuji_service import ErshoushujiService
 
 
 class CartService:
     @staticmethod
+    def _check_stock(book_id, quantity):
+        book = Book.query.get(book_id)
+        if not book:
+            return False, '书籍不存在'
+        if book.stock < quantity:
+            return False, f'库存不足，当前库存：{book.stock}'
+        return True, None
+
+    @staticmethod
     def page(params, identity=None):
         query = Cart.query
         if identity and identity.get('role') != '管理员':
-            query = query.filter_by(userid=identity['id'])
-        query = apply_filters(Cart, query, params, like_fields=['goodname'])
+            query = query.filter_by(user_id=identity['id'])
+        query = apply_filters(Cart, query, params)
         return paginate_query(Cart, query, params)
 
     @staticmethod
-    def list_all(params):
+    def list_all(params, identity=None):
         query = Cart.query
-        query = apply_filters(Cart, query, params, like_fields=['goodname'])
+        if identity and identity.get('role') != '管理员':
+            query = query.filter_by(user_id=identity['id'])
+        query = apply_filters(Cart, query, params)
         return paginate_query(Cart, query, params)
 
     @staticmethod
     def get_by_id(cart_id):
-        return model_to_dict(Cart.query.get(cart_id))
+        cart = Cart.query.get(cart_id)
+        if not cart:
+            return None
+        d = model_to_dict(cart)
+        if cart.book_id:
+            book = Book.query.get(cart.book_id)
+            if book:
+                d['book_title'] = book.title
+                d['book_cover'] = book.cover
+                d['book_price'] = book.price
+                d['book_stock'] = book.stock
+        return d
 
     @staticmethod
     def save(data, identity=None):
-        # 检查库存
-        goodid = data.get('goodid')
-        buynumber = data.get('buynumber', 1)
-        if goodid:
-            ok, err = ErshoushujiService.check_stock(goodid, buynumber)
+        book_id = data.get('book_id')
+        quantity = data.get('quantity', 1)
+        if book_id:
+            ok, err = CartService._check_stock(book_id, quantity)
             if not ok:
                 raise ValueError(err)
 
         data['id'] = generate_id()
         if identity:
-            data['userid'] = identity['id']
+            data['user_id'] = identity['id']
         cart = Cart(**data)
         db.session.add(cart)
         db.session.commit()
@@ -45,10 +65,9 @@ class CartService:
         if not cart:
             return False, '购物车项不存在'
 
-        # 如果修改了购买数量，需要检查库存
-        new_buynumber = data.get('buynumber')
-        if new_buynumber and cart.goodid:
-            ok, err = ErshoushujiService.check_stock(cart.goodid, new_buynumber)
+        new_quantity = data.get('quantity')
+        if new_quantity and cart.book_id:
+            ok, err = CartService._check_stock(cart.book_id, new_quantity)
             if not ok:
                 return False, err
 
