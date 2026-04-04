@@ -44,3 +44,14 @@ class ReviewService:
     def delete(ids):
         Review.query.filter(Review.id.in_(ids)).delete(synchronize_session=False)
         db.session.commit()
+
+    @staticmethod
+    def reply(review_id, reply_content):
+        """卖家回复评论"""
+        review = Review.query.get(review_id)
+        if not review:
+            return False, '评论不存在'
+        
+        review.reply = reply_content
+        db.session.commit()
+        return True, None

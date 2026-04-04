@@ -8,7 +8,7 @@ database:
   track_modifications: false
 
 jwt:
-  secret_key: jwt-secret-key
+  secret_key: jwt-secret-key-campus-books-2024-secure
   access_token_expires: 86400  # 24 hours
 
 upload:

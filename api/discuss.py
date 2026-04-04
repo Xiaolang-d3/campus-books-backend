@@ -48,3 +48,18 @@ def update():
 def delete():
     ReviewService.delete(request.json)
     return R_ok()
+
+
+@discuss_bp.route('/reply', methods=['POST'])
+@login_required_custom
+def reply():
+    """卖家回复评论"""
+    data = request.json
+    review_id = data.get('id')
+    reply_content = data.get('reply')
+    
+    if not review_id or not reply_content:
+        return R_error('评论ID和回复内容不能为空')
+    
+    ok, err = ReviewService.reply(review_id, reply_content)
+    return R_ok('回复成功') if ok else R_error(err)

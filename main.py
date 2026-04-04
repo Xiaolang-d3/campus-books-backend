@@ -30,6 +30,7 @@ from api.recommend import recommend_bp
 from api.chat import chat_bp
 from api.college_api import college_bp
 from api.major_api import major_bp
+from api.statistics import statistics_bp
 
 
 def create_app():
@@ -64,6 +65,7 @@ def create_app():
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(college_bp, url_prefix='/api/college')
     app.register_blueprint(major_bp, url_prefix='/api/major')
+    app.register_blueprint(statistics_bp, url_prefix='/api/statistics')
 
     with app.app_context():
         db.create_all()
