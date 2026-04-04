@@ -73,9 +73,20 @@ def create_app():
 
 if __name__ == '__main__':
     import os
+    import logging
+    
+    # Suppress Flask development server warnings
+    os.environ['WERKZEUG_RUN_MAIN'] = os.environ.get('WERKZEUG_RUN_MAIN', 'false')
+    
+    # Only run migration once (not on reloader)
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         from migrations.migrate import migrate
         migrate()
+        print('Server starting on http://127.0.0.1:8081')
+
+    # Reduce werkzeug logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
 
     app = create_app()
     app.run(

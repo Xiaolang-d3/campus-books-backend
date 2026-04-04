@@ -48,7 +48,6 @@ def create_database():
                 "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
             )
         conn.commit()
-        print(f"[OK] 数据库 `{DB_NAME}` 已就绪")
     finally:
         conn.close()
 
@@ -288,7 +287,6 @@ def create_tables():
             for ddl in tables:
                 cur.execute(ddl)
         conn.commit()
-        print('[OK] 所有表已创建')
     finally:
         conn.close()
 
@@ -298,18 +296,13 @@ def seed_data():
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM `admin`")
-            if cur.fetchone()[0] > 0:
-                print('[SKIP] 基础数据已存在，跳过')
-            else:
+            if cur.fetchone()[0] == 0:
                 cur.execute(
                     "INSERT INTO `admin` (`username`, `password`, `role`) VALUES ('admin', 'admin', '管理员')"
                 )
-                print('[OK] 管理员数据已插入')
 
             cur.execute("SELECT COUNT(*) FROM `college`")
-            if cur.fetchone()[0] > 0:
-                print('[SKIP] 学院数据已存在，跳过')
-            else:
+            if cur.fetchone()[0] == 0:
                 for college in ['计算机学院', '文学院', '经济管理学院', '理学院']:
                     cur.execute("INSERT INTO `college` (`name`) VALUES (%s)", (college,))
 
@@ -367,12 +360,9 @@ def seed_data():
                         '<p>欢迎使用校园二手专业书平台，当前版本已支持校园用户同时进行买书和卖书。</p>',
                     ),
                 )
-                print('[OK] 基础数据已插入')
 
             cur.execute("SELECT COUNT(*) FROM `user`")
-            if cur.fetchone()[0] > 0:
-                print('[SKIP] 用户数据已存在，跳过')
-            else:
+            if cur.fetchone()[0] == 0:
                 users = [
                     ('20220011', '王同学', '123456', '男', '13800138111', 1, 1, '2022级', 300.00),
                     ('20220012', '陈同学', '123456', '女', '13800138112', 3, 5, '2021级', 600.00),
@@ -383,58 +373,16 @@ def seed_data():
                         "INSERT INTO `user` (`student_no`, `name`, `password`, `gender`, `phone`, `college_id`, `major_id`, `grade`, `balance`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
                         user,
                     )
-                print(f'[OK] 导入 {len(users)} 条用户数据')
-
-            cur.execute("SELECT COUNT(*) FROM `book`")
-            if cur.fetchone()[0] > 0:
-                print('[SKIP] 书籍数据已存在，跳过')
-            else:
-                books = [
-                    # 计算机类
-                    ('9787302147514', '数据结构（C语言版）', '严蔚敏 吴伟民', 'https://img1.doubanio.com/view/subject/l/public/s30016908.jpg', '清华大学出版社', '本书是计算机科学与技术专业的核心基础课程教材，系统介绍了线性表、栈、队列、树、图等基本数据结构，以及查找和排序的各类算法。配套C语言实现代码，适合考研和课程学习。', 2, 2, 1, 28.00, 45.00, 3, 1),
-                    ('9787302492850', '计算机网络（第7版）', '谢希仁', 'https://img1.doubanio.com/view/subject/l/public/s30016454.jpg', '电子工业出版社', '计算机网络经典教材，系统阐述计算机网络体系结构、物理层、数据链路层、网络层、传输层、应用层等核心内容，配套PPT和习题答案。', 2, 2, 1, 32.00, 52.00, 2, 1),
-                    ('9787302348950', '数据库系统概论（第5版）', '王珊 萨师煊', 'https://img1.doubanio.com/view/subject/l/public/s27243621.jpg', '高等教育出版社', '数据库系统经典教材，全面介绍关系数据库、SQL语言、数据库设计、事务管理、并发控制、数据库恢复等核心知识。', 2, 3, 1, 25.00, 42.00, 2, 1),
-                    ('9787302585874', '软件工程导论（第6版）', '张海藩 牟永敏', 'https://img1.doubanio.com/view/subject/l/public/s24514483.jpg', '清华大学出版社', '软件工程专业基础教材，涵盖软件过程模型、需求分析、系统设计、测试与维护等内容。', 2, 2, 1, 26.00, 38.00, 3, 1),
-                    # 数学类
-                    ('9787302185424', '高等数学（第7版）上册', '同济大学数学系', 'https://img1.doubanio.com/view/subject/l/public/s27263085.jpg', '高等教育出版社', '工科院校高等数学经典教材，内容包括函数与极限、导数与微分、微分中值定理与导数应用、不定积分、定积分及其应用等。', 8, 3, 2, 22.00, 35.00, 3, 1),
-                    ('9787302185431', '高等数学（第7版）下册', '同济大学数学系', 'https://img1.doubanio.com/view/subject/l/public/s27263090.jpg', '高等教育出版社', '工科院校高等数学经典教材下册，内容包括向量与空间解析几何、多元函数微分法及其应用、重积分、曲线积分与曲面积分、无穷级数等。', 8, 2, 2, 24.00, 38.00, 2, 1),
-                    ('9787302529044', '线性代数（第6版）', '同济大学数学系', 'https://img1.doubanio.com/view/subject/l/public/s29820966.jpg', '高等教育出版社', '线性代数经典教材，内容包括行列式、矩阵及其运算、向量组的线性相关性、相似矩阵及二次型、线性空间与线性变换等。', 8, 3, 1, 18.00, 28.00, 4, 1),
-                    ('9787302332263', '概率论与数理统计（第4版）', '盛骤 谢式千 潘承毅', 'https://img1.doubanio.com/view/subject/l/public/s33868644.jpg', '高等教育出版社', '概率论与数理统计基础教材，内容包括概率论基本概念、随机变量及其分布、多维随机变量、大数定律与中心极限定理、样本与抽样分布、参数估计、假设检验等。', 8, 2, 1, 26.00, 42.00, 2, 1),
-                    # 经济管理类
-                    ('9787302428019', '西方经济学（微观部分 第7版）', '高鸿业', 'https://img1.doubanio.com/view/subject/l/public/s29653804.jpg', '中国人民大学出版社', '经济学专业基础教材，系统介绍供求理论、消费者行为理论、生产者行为理论、市场理论、要素市场理论、一般均衡与福利经济学、市场失灵与政府干预等。', 5, 3, 2, 24.00, 38.00, 3, 1),
-                    ('9787300249944', '西方经济学（宏观部分 第7版）', '高鸿业', 'https://img1.doubanio.com/view/subject/l/public/s29653810.jpg', '中国人民大学出版社', '宏观经济学经典教材，内容涵盖国民收入核算、简单国民收入决定理论、产品市场和货币市场的一般均衡、宏观经济政策、失业与通货膨胀、经济增长等。', 5, 2, 2, 26.00, 40.00, 2, 1),
-                    ('9787300317650', '基础会计学（第2版）', '王华', 'https://img1.doubanio.com/view/subject/l/public/s27241632.jpg', '中国人民大学出版社', '会计学入门教材，内容包括会计基本理论、会计科目与账户、复式记账原理、主要经济业务核算、会计凭证、账簿、报表等。', 5, 3, 2, 22.00, 35.00, 3, 1),
-                    # 文学语言类
-                    ('9787040548505', '中国现代文学史（第2版）', '朱栋霖', 'https://img1.doubanio.com/view/subject/l/public/s29813717.jpg', '高等教育出版社', '中文专业核心教材，系统梳理1917年至1949年中国现代文学的发展历程，涵盖重要作家作品、文学思潮与流派。', 1, 2, 3, 28.00, 45.00, 2, 1),
-                    ('9787101007995', '古代汉语（校订重排本 第1册）', '王力 主编', 'https://img1.doubanio.com/view/subject/l/public/s10796758.jpg', '中华书局', '古代汉语经典教材，文选部分选录先秦至汉代的散文和韵文，读本部分包括语法常识和古代文化知识，附有常用词释义。', 1, 3, 3, 20.00, 32.00, 2, 1),
-                    # 大学物理
-                    ('9787040410322', '大学物理（第3版）', '张三慧', 'https://img1.doubanio.com/view/subject/l/public/s29949133.jpg', '清华大学出版社', '工科物理基础教材，内容包括力学、热学、电磁学、光学和量子物理基础，配有丰富的例题和习题。', 8, 2, 1, 35.00, 55.00, 2, 1),
-                    # 大学英语
-                    ('9787544653247', '新视野大学英语（读写教程1）', '郑树棠', 'https://img1.doubanio.com/view/subject/l/public/s28115841.jpg', '外语教学与研究出版社', '大学英语精读教材第一册，包含8个单元，涵盖校园生活、学习方法、文化交流等主题，配有音频和视频资料。', 6, 2, 2, 18.00, 28.00, 4, 1),
-                    # 马克思主义基本原理
-                    ('9787040441838', '马克思主义基本原理概论（2018年版）', '本书编写组', 'https://img1.doubanio.com/view/subject/l/public/s29957537.jpg', '高等教育出版社', '高校思想政治理论课教材，系统阐述马克思主义的哲学、政治经济学和科学社会主义基本原理。', 6, 3, 1, 16.00, 25.00, 3, 1),
-                    # 系统解剖学
-                    ('9787117244050', '系统解剖学（第9版）', '柏树令 丁文龙', 'https://img1.doubanio.com/view/subject/l/public/s33871822.jpg', '人民卫生出版社', '临床医学专业基础课程教材，系统介绍人体各系统的组成、形态结构和功能关系，配有精美插图和配套习题集。', 6, 2, 1, 38.00, 65.00, 1, 1),
-                ]
-                for book in books:
-                    cur.execute(
-                        "INSERT INTO `book` (`isbn`, `title`, `author`, `cover`, `publisher`, `description`, `category_id`, `condition_id`, `seller_id`, `price`, `original_price`, `stock`, `status`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                        book,
-                    )
-                print(f'[OK] 导入 {len(books)} 条书籍数据')
 
         conn.commit()
-        print('[OK] 示例数据导入完成')
     finally:
         conn.close()
 
 
 def migrate():
-    print('========== 开始数据库迁移 ==========')
     create_database()
     create_tables()
     seed_data()
-    print('========== 迁移完成 ==========')
 
 
 if __name__ == '__main__':
