@@ -91,7 +91,8 @@ class CartService:
             new_quantity = exists.quantity + quantity
             ok, err = CartService._check_stock(book_id, new_quantity)
             if not ok:
-                raise ValueError(err)
+                # 如果库存不足以累加，返回更友好的提示
+                raise ValueError(f'该商品已在购物车中，{err}')
             exists.quantity = new_quantity
             db.session.commit()
             return

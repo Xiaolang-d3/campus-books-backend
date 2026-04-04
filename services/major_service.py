@@ -2,28 +2,68 @@ from models import Major, db
 from utils import model_to_dict, paginate_query, apply_filters
 
 
+def major_to_dict(major):
+    """将专业对象转换为字典，包含学院名称"""
+    if major is None:
+        return None
+    d = model_to_dict(major)
+    if major.college:
+        d['college_name'] = major.college.name
+    else:
+        d['college_name'] = ''
+    return d
+
+
 class MajorService:
     @staticmethod
     def page(params):
         query = Major.query
         query = apply_filters(Major, query, params, like_fields=['name'], eq_fields=['college_id'])
-        return paginate_query(Major, query, params)
+        
+        page = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        sort = params.get('sort', 'id')
+        order = params.get('order', 'desc')
+        
+        if hasattr(Major, sort):
+            col = getattr(Major, sort)
+            query = query.order_by(col.desc() if order == 'desc' else col.asc())
+        
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        
+        return {
+            'list': [major_to_dict(item) for item in pagination.items],
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page,
+        }
 
     @staticmethod
     def list_all(params):
         query = Major.query
         query = apply_filters(Major, query, params, like_fields=['name'], eq_fields=['college_id'])
-        return paginate_query(Major, query, params)
+        
+        page = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        sort = params.get('sort', 'id')
+        order = params.get('order', 'desc')
+        
+        if hasattr(Major, sort):
+            col = getattr(Major, sort)
+            query = query.order_by(col.desc() if order == 'desc' else col.asc())
+        
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        
+        return {
+            'list': [major_to_dict(item) for item in pagination.items],
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page,
+        }
 
     @staticmethod
     def get_by_id(obj_id):
-        obj = Major.query.get(obj_id)
-        if not obj:
-            return None
-        d = model_to_dict(obj)
-        if obj.college:
-            d['college_name'] = obj.college.name
-        return d
+        return major_to_dict(Major.query.get(obj_id))
 
     @staticmethod
     def save(data):

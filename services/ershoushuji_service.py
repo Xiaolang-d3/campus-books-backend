@@ -2,6 +2,29 @@ from models import Book, User, BookCategory, ConditionLevel, db
 from utils import apply_filters, generate_id, model_to_dict, paginate_query
 
 
+def book_to_dict(book):
+    """将书籍对象转换为字典，包含关联表数据"""
+    if book is None:
+        return None
+    d = model_to_dict(book)
+    # 附加关联表名称
+    if book.category:
+        d['category_name'] = book.category.name
+    else:
+        d['category_name'] = ''
+    if book.condition:
+        d['condition_name'] = book.condition.name
+    else:
+        d['condition_name'] = ''
+    if book.seller:
+        d['seller_name'] = book.seller.name
+        d['seller_student_no'] = book.seller.student_no
+    else:
+        d['seller_name'] = ''
+        d['seller_student_no'] = ''
+    return d
+
+
 class BookService:
     REQUIRED_FIELDS = ('title', 'isbn', 'price')
 
@@ -40,6 +63,14 @@ class BookService:
     def page(params, identity=None):
         query = Book.query
         query = BookService._apply_visibility_scope(query, params, identity)
+        
+        # 如果有卖家姓名搜索，需要 JOIN user 表
+        seller_name = params.get('seller_name')
+        if seller_name:
+            query = query.join(User, Book.seller_id == User.id).filter(
+                User.name.like(f'%{seller_name}%')
+            )
+        
         query = apply_filters(
             Book,
             query,
@@ -48,7 +79,25 @@ class BookService:
             eq_fields=['category_id', 'condition_id', 'status', 'seller_id'],
         )
         query = BookService._apply_price_filter(query, params)
-        return paginate_query(Book, query, params)
+        
+        # 使用自定义分页逻辑以包含关联数据
+        page = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        sort = params.get('sort', 'id')
+        order = params.get('order', 'desc')
+        
+        if hasattr(Book, sort):
+            col = getattr(Book, sort)
+            query = query.order_by(col.desc() if order == 'desc' else col.asc())
+        
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        
+        return {
+            'list': [book_to_dict(item) for item in pagination.items],
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page,
+        }
 
     @staticmethod
     def list_all(params):
@@ -61,23 +110,30 @@ class BookService:
             eq_fields=['category_id', 'condition_id', 'status'],
         )
         query = BookService._apply_price_filter(query, params)
-        return paginate_query(Book, query, params)
+        
+        # 使用自定义分页逻辑以包含关联数据
+        page = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        sort = params.get('sort', 'id')
+        order = params.get('order', 'desc')
+        
+        if hasattr(Book, sort):
+            col = getattr(Book, sort)
+            query = query.order_by(col.desc() if order == 'desc' else col.asc())
+        
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        
+        return {
+            'list': [book_to_dict(item) for item in pagination.items],
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page,
+        }
 
     @staticmethod
     def get_by_id(book_id):
         book = Book.query.get(book_id)
-        if not book:
-            return None
-        d = model_to_dict(book)
-        # 附加关联表名称
-        if book.category:
-            d['category_name'] = book.category.name
-        if book.condition:
-            d['condition_name'] = book.condition.name
-        if book.seller:
-            d['seller_name'] = book.seller.name
-            d['seller_student_no'] = book.seller.student_no
-        return d
+        return book_to_dict(book)
 
     @staticmethod
     def save(data, identity=None):
