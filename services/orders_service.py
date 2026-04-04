@@ -3,10 +3,47 @@ from datetime import datetime
 from sqlalchemy import text
 
 from models import Book, Order, User, db
-from utils import apply_filters, generate_id, generate_order_id, model_to_dict, paginate_query
+from utils import apply_filters, generate_id, generate_order_id, model_to_dict
 
 
 class OrderService:
+    @staticmethod
+    def _order_to_dict(order):
+        """订单字典 + 卖家姓名/学号（前端展示用）"""
+        if order is None:
+            return None
+        data = model_to_dict(order)
+        seller = User.query.get(order.seller_id) if order.seller_id else None
+        if seller:
+            data['seller_name'] = seller.name
+            data['seller_student_no'] = seller.student_no
+        else:
+            data['seller_name'] = ''
+            data['seller_student_no'] = ''
+        return data
+
+    @staticmethod
+    def _orders_to_dict_list(orders):
+        if not orders:
+            return []
+        seller_ids = {o.seller_id for o in orders if o.seller_id}
+        sellers = {}
+        if seller_ids:
+            for u in User.query.filter(User.id.in_(seller_ids)).all():
+                sellers[u.id] = u
+        out = []
+        for o in orders:
+            d = model_to_dict(o)
+            s = sellers.get(o.seller_id)
+            if s:
+                d['seller_name'] = s.name
+                d['seller_student_no'] = s.student_no
+            else:
+                d['seller_name'] = ''
+                d['seller_student_no'] = ''
+            out.append(d)
+        return out
+
     PAID_STATUSES = {'已支付', '已发货', '已完成'}
 
     @staticmethod
@@ -28,7 +65,20 @@ class OrderService:
             params,
             like_fields=['order_no', 'book_title'],
         )
-        return paginate_query(Order, query, params)
+        page_num = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        sort = params.get('sort', 'id')
+        order_dir = params.get('order', 'desc')
+        if hasattr(Order, sort):
+            col = getattr(Order, sort)
+            query = query.order_by(col.desc() if order_dir == 'desc' else col.asc())
+        pagination = query.paginate(page=page_num, per_page=limit, error_out=False)
+        return {
+            'list': OrderService._orders_to_dict_list(pagination.items),
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page_num,
+        }
 
     @staticmethod
     def list_all(params):
@@ -39,11 +89,24 @@ class OrderService:
             params,
             like_fields=['order_no', 'book_title'],
         )
-        return paginate_query(Order, query, params)
+        page_num = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        sort = params.get('sort', 'id')
+        order_dir = params.get('order', 'desc')
+        if hasattr(Order, sort):
+            col = getattr(Order, sort)
+            query = query.order_by(col.desc() if order_dir == 'desc' else col.asc())
+        pagination = query.paginate(page=page_num, per_page=limit, error_out=False)
+        return {
+            'list': OrderService._orders_to_dict_list(pagination.items),
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page_num,
+        }
 
     @staticmethod
     def get_by_id(order_id):
-        return model_to_dict(Order.query.get(order_id))
+        return OrderService._order_to_dict(Order.query.get(order_id))
 
     @staticmethod
     def save(data, identity=None):
@@ -83,7 +146,7 @@ class OrderService:
             raise ValueError(err)
 
         db.session.commit()
-        return model_to_dict(order)
+        return OrderService._order_to_dict(order)
 
     @staticmethod
     def _check_book_available(book, quantity, identity):

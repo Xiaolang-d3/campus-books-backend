@@ -1,5 +1,21 @@
 from models import User, db
+from models import College, Major
 from utils import apply_filters, generate_id, model_to_dict, paginate_query
+
+
+def user_to_dict(user):
+    if user is None:
+        return None
+    data = model_to_dict(user)
+    if user.college:
+        data['college_name'] = user.college.name
+    else:
+        data['college_name'] = ''
+    if user.major:
+        data['major_name'] = user.major.name
+    else:
+        data['major_name'] = ''
+    return data
 
 
 class UserService:
@@ -42,7 +58,7 @@ class UserService:
 
     @staticmethod
     def get_by_id(user_id):
-        return model_to_dict(User.query.get(user_id))
+        return user_to_dict(User.query.get(user_id))
 
     @staticmethod
     def reset_pass(username):
@@ -61,9 +77,17 @@ class UserService:
             query,
             params,
             like_fields=['student_no', 'name', 'phone'],
-            eq_fields=['gender'],
+            eq_fields=['gender', 'college_id', 'major_id'],
         )
-        return paginate_query(User, query, params)
+        page = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        return {
+            'list': [user_to_dict(item) for item in pagination.items],
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page,
+        }
 
     @staticmethod
     def list_all(params):
@@ -74,7 +98,15 @@ class UserService:
             params,
             like_fields=['student_no', 'name'],
         )
-        return paginate_query(User, query, params)
+        page = int(params.get('page', 1))
+        limit = int(params.get('limit', 10))
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        return {
+            'list': [user_to_dict(item) for item in pagination.items],
+            'total': pagination.total,
+            'pageSize': limit,
+            'currPage': page,
+        }
 
     @staticmethod
     def save(data):

@@ -24,4 +24,10 @@ ai:
     temperature: 0.8
     cache_ttl: 600  # 缓存时间（秒），默认10分钟
 
+# 书籍封面API配置
+book_cover:
+  isbn_work:
+    api_key: "ae1718d4587744b0b79f940fbef69e77"  # ISBN.work API Key（中文图书封面）
+    # 如需申请自己的API Key，请联系微信: 809137232
+
 secret_key: dev-secret-key-change-in-production

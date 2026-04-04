@@ -28,6 +28,8 @@ from api.wallet import wallet_bp
 from api.condition_level_api import condition_level_bp
 from api.recommend import recommend_bp
 from api.chat import chat_bp
+from api.college_api import college_bp
+from api.major_api import major_bp
 
 
 def create_app():
@@ -60,6 +62,8 @@ def create_app():
     app.register_blueprint(condition_level_bp, url_prefix='/api/conditionLevel')
     app.register_blueprint(recommend_bp, url_prefix='/api/recommend')
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
+    app.register_blueprint(college_bp, url_prefix='/api/college')
+    app.register_blueprint(major_bp, url_prefix='/api/major')
 
     with app.app_context():
         db.create_all()
@@ -68,8 +72,10 @@ def create_app():
 
 
 if __name__ == '__main__':
-    from migrations.migrate import migrate
-    migrate()
+    import os
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        from migrations.migrate import migrate
+        migrate()
 
     app = create_app()
     app.run(
