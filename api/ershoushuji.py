@@ -61,5 +61,9 @@ def update():
 @login_required_custom
 def delete():
     identity = get_jwt_identity()
-    BookService.delete(request.json, identity)
-    return R_ok()
+    deleted, err = BookService.delete(request.json, identity)
+    if err:
+        return R_error(err)
+    if deleted > 0:
+        return R_ok()
+    return R_error('删除失败，书籍不存在或无权限')

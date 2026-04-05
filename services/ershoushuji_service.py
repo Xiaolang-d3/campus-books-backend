@@ -1,4 +1,4 @@
-from models import Book, User, BookCategory, ConditionLevel, db
+from models import Book, User, BookCategory, ConditionLevel, Order, db
 from utils import apply_filters, generate_id, model_to_dict, paginate_query
 
 
@@ -22,6 +22,8 @@ def book_to_dict(book):
     else:
         d['seller_name'] = ''
         d['seller_student_no'] = ''
+    # 是否有关联订单
+    d['has_orders'] = Order.query.filter_by(book_id=book.id).first() is not None
     return d
 
 
@@ -138,6 +140,21 @@ class BookService:
         return book_to_dict(book)
 
     @staticmethod
+    def _resolve_names_to_ids(payload):
+        """将 category_name / condition_name 转换为对应的 category_id / condition_id"""
+        cat_name = payload.pop('category_name', None)
+        if cat_name and not payload.get('category_id'):
+            cat = BookCategory.query.filter_by(name=cat_name).first()
+            if cat:
+                payload['category_id'] = cat.id
+
+        cond_name = payload.pop('condition_name', None)
+        if cond_name and not payload.get('condition_id'):
+            cond = ConditionLevel.query.filter_by(name=cond_name).first()
+            if cond:
+                payload['condition_id'] = cond.id
+
+    @staticmethod
     def save(data, identity=None):
         ok, err = BookService._validate_payload(data)
         if not ok:
@@ -151,6 +168,13 @@ class BookService:
         if identity and identity.get('tableName') == 'user':
             payload['seller_id'] = identity['id']
 
+        # 兼容前端传 category_name / condition_name 的情况
+        BookService._resolve_names_to_ids(payload)
+
+        # 过滤掉非 Book 模型的字段，避免 SQLAlchemy 报错
+        valid_columns = {c.key for c in Book.__table__.columns}
+        payload = {k: v for k, v in payload.items() if k in valid_columns}
+
         book = Book(**payload)
         db.session.add(book)
         db.session.commit()
@@ -162,15 +186,24 @@ class BookService:
         if not book:
             return False, '书籍不存在'
 
-        if identity and identity.get('tableName') == 'user' and book.seller_id != identity['id']:
+        if identity and identity.get('tableName') == 'user' and int(book.seller_id) != int(identity['id']):
             return False, '只能修改自己发布的书籍'
 
-        ok, err = BookService._validate_payload(data)
-        if not ok:
-            return False, err
+        # update 时只校验传了的必填字段，允许部分更新
+        for field in BookService.REQUIRED_FIELDS:
+            if field in data:
+                value = data.get(field)
+                if value is None or str(value).strip() == '':
+                    field_name = {'title': '书籍名称', 'isbn': 'ISBN', 'price': '价格'}[field]
+                    return False, f'{field_name}不能为空'
 
-        for k, v in data.items():
-            if hasattr(book, k):
+        payload = dict(data)
+        # 兼容前端传 category_name / condition_name 的情况
+        BookService._resolve_names_to_ids(payload)
+
+        valid_columns = {c.key for c in Book.__table__.columns}
+        for k, v in payload.items():
+            if k in valid_columns:
                 setattr(book, k, v)
         db.session.commit()
         return True, None
@@ -179,9 +212,14 @@ class BookService:
     def delete(ids, identity=None):
         query = Book.query.filter(Book.id.in_(ids))
         if identity and identity.get('tableName') == 'user':
-            query = query.filter_by(seller_id=identity['id'])
-        query.delete(synchronize_session=False)
-        db.session.commit()
+            query = query.filter(Book.seller_id == int(identity['id']))
+        try:
+            deleted = query.delete(synchronize_session=False)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return 0, '该书籍存在关联订单，无法删除，请先下架'
+        return deleted, None
 
     @staticmethod
     def check_stock(book_id, quantity):

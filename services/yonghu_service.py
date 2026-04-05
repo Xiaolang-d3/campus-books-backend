@@ -25,7 +25,7 @@ class UserService:
     def _validate_payload(data, is_update=False):
         data = data or {}
         for field in UserService.REQUIRED_FIELDS:
-            if field == 'password' and is_update and field not in data:
+            if is_update and field in ('password', 'student_no') and field not in data:
                 continue
             value = data.get(field)
             if value is None or str(value).strip() == '':
