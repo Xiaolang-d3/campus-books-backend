@@ -39,6 +39,10 @@ def create_app():
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+    # 初始化图片代理缓存
+    from services.image_proxy_service import ImageProxyService
+    ImageProxyService.init(app.config['UPLOAD_FOLDER'])
+
     CORS(app, supports_credentials=True)
     JWTManager(app)
     db.init_app(app)
