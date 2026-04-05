@@ -280,8 +280,20 @@ class OrderService:
         query.delete(synchronize_session=False)
         db.session.commit()
 
+    # 统计接口允许的列白名单，防止 SQL 注入
+    _ALLOWED_STAT_COLS = {
+        col.name for col in Order.__table__.columns
+    }
+
+    @staticmethod
+    def _validate_col(col_name):
+        if col_name not in OrderService._ALLOWED_STAT_COLS:
+            raise ValueError(f'不允许的统计字段: {col_name}')
+
     @staticmethod
     def value_stat(x_col, y_col):
+        OrderService._validate_col(x_col)
+        OrderService._validate_col(y_col)
         sql = text(
             f"SELECT `{x_col}` as name, SUM(`{y_col}`) as value "
             f"FROM `order` WHERE status IN ({OrderService._paid_status_sql()}) GROUP BY `{x_col}`"
@@ -291,6 +303,8 @@ class OrderService:
 
     @staticmethod
     def value_time_stat(x_col, y_col, time_stat_type):
+        OrderService._validate_col(x_col)
+        OrderService._validate_col(y_col)
         time_format = {'日': '%Y-%m-%d', '月': '%Y-%m', '年': '%Y'}.get(time_stat_type, '%Y-%m-%d')
         sql = text(
             f"SELECT DATE_FORMAT(`{x_col}`, :fmt) as name, SUM(`{y_col}`) as value "
@@ -301,6 +315,7 @@ class OrderService:
 
     @staticmethod
     def group_stat(column_name):
+        OrderService._validate_col(column_name)
         sql = text(
             f"SELECT `{column_name}` as name, COUNT(*) as value "
             f"FROM `order` WHERE status IN ({OrderService._paid_status_sql()}) GROUP BY `{column_name}`"

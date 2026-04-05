@@ -67,14 +67,23 @@ def delete():
 
 @orders_bp.route('/value/<x_col>/<y_col>', methods=['GET'])
 def value_stat(x_col, y_col):
-    return R_ok(data=OrderService.value_stat(x_col, y_col))
+    try:
+        return R_ok(data=OrderService.value_stat(x_col, y_col))
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @orders_bp.route('/value/<x_col>/<y_col>/<time_stat_type>', methods=['GET'])
 def value_time_stat(x_col, y_col, time_stat_type):
-    return R_ok(data=OrderService.value_time_stat(x_col, y_col, time_stat_type))
+    try:
+        return R_ok(data=OrderService.value_time_stat(x_col, y_col, time_stat_type))
+    except ValueError as e:
+        return R_error(str(e))
 
 
 @orders_bp.route('/group/<column_name>', methods=['GET'])
 def group_stat(column_name):
-    return R_ok(data=OrderService.group_stat(column_name))
+    try:
+        return R_ok(data=OrderService.group_stat(column_name))
+    except ValueError as e:
+        return R_error(str(e))
