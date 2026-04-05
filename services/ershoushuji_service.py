@@ -55,7 +55,9 @@ class BookService:
     def _apply_visibility_scope(query, params, identity):
         if not identity or identity.get('tableName') == 'admin':
             return query
-        if params.get('myPublished') == '1':
+        # 支持字符串'1'和数字1
+        my_published = params.get('myPublished')
+        if my_published == '1' or my_published == 1:
             return query.filter_by(seller_id=identity['id'])
         return query
 
@@ -107,7 +109,7 @@ class BookService:
             query,
             params,
             like_fields=['title', 'author', 'isbn', 'publisher'],
-            eq_fields=['category_id', 'condition_id', 'status'],
+            eq_fields=['category_id', 'condition_id', 'status', 'seller_id'],
         )
         query = BookService._apply_price_filter(query, params)
         

@@ -41,7 +41,14 @@ def apply_filters(model, query, params, like_fields=None, eq_fields=None):
     for field in eq_fields:
         val = params.get(field)
         if val and hasattr(model, field):
-            query = query.filter(getattr(model, field) == val)
+            col = getattr(model, field)
+            # 如果是整数类型字段，尝试转换值为整数
+            if hasattr(col.type, 'python_type') and col.type.python_type == int:
+                try:
+                    val = int(val)
+                except (ValueError, TypeError):
+                    pass
+            query = query.filter(col == val)
     return query
 
 

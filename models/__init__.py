@@ -263,3 +263,29 @@ class ConfigModel(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
     value = db.Column(db.String(100))
+
+
+# =====================================================================
+# AI 聊天历史表
+# =====================================================================
+class ChatSession(db.Model):
+    __tablename__ = 'chat_session'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    title = db.Column(db.String(200), default='新对话')
+    message_count = db.Column(db.Integer, default=0)
+    last_message_time = db.Column(db.DateTime, default=datetime.now)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+
+
+class ChatMessage(db.Model):
+    __tablename__ = 'chat_message'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    session_id = db.Column(db.BigInteger, db.ForeignKey('chat_session.id', ondelete='CASCADE'), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # 'user' or 'assistant'
+    content = db.Column(db.Text, nullable=False)
+    content_type = db.Column(db.String(20), default='text')  # 'text', 'book_card', 'book_list'
+    extra_data = db.Column(db.Text)  # JSON格式存储额外信息（如书籍ID等）
+    addtime = db.Column(db.DateTime, default=datetime.now)
