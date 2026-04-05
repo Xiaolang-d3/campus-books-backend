@@ -158,7 +158,8 @@ class OrderService:
 
     @staticmethod
     def _lock_stock(book, quantity, status):
-        if status == '已退款':
+        # 只有已退款或未支付状态不扣减库存
+        if status in ['已退款', '未支付']:
             return True, None
         if int(book.stock or 0) < quantity:
             return False, f'库存不足，当前库存：{book.stock or 0}'
@@ -211,6 +212,14 @@ class OrderService:
         if float(buyer.balance or 0) < total:
             return False, '余额不足，无法支付'
 
+        # 支付时扣减库存
+        book = Book.query.get(order.book_id) if order.book_id else None
+        if book:
+            quantity = int(order.quantity or 0)
+            if int(book.stock or 0) < quantity:
+                return False, f'库存不足，当前库存：{book.stock or 0}'
+            book.stock = int(book.stock or 0) - quantity
+
         seller = User.query.get(order.seller_id) if order.seller_id else None
         buyer.balance = float(buyer.balance or 0) - total
         if seller:
@@ -251,10 +260,14 @@ class OrderService:
 
         orders = query.all()
         for order in orders:
-            if order.status not in ['已完成', '已退款'] and order.book_id and order.quantity:
-                book = Book.query.get(order.book_id)
-                if book:
-                    book.stock = int(book.stock or 0) + int(order.quantity or 0)
+            # 只有已支付（非未支付、已退款、已完成）的订单才需要恢复库存
+            if order.status in OrderService.PAID_STATUSES and order.status not in ['已完成', '已退款']:
+                if order.book_id and order.quantity:
+                    book = Book.query.get(order.book_id)
+                    if book:
+                        book.stock = int(book.stock or 0) + int(order.quantity or 0)
+            
+            # 退款逻辑
             if order.status in OrderService.PAID_STATUSES:
                 buyer = User.query.get(order.user_id)
                 seller = User.query.get(order.seller_id) if order.seller_id else None
