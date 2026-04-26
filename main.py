@@ -25,6 +25,7 @@ from api.config_api import config_bp
 from api.file import file_bp
 from api.common import common_bp
 from api.wallet import wallet_bp
+from api.alipay import alipay_bp
 from api.condition_level_api import condition_level_bp
 from api.recommend import recommend_bp
 from api.chat import chat_bp
@@ -62,6 +63,7 @@ def create_app():
     app.register_blueprint(storeup_bp, url_prefix='/api/favorite')
     app.register_blueprint(config_bp, url_prefix='/api/config')
     app.register_blueprint(wallet_bp, url_prefix='/api/wallet')
+    app.register_blueprint(alipay_bp, url_prefix='/api/alipay')
     app.register_blueprint(file_bp, url_prefix='/api/file')
     app.register_blueprint(common_bp, url_prefix='/api')
     app.register_blueprint(condition_level_bp, url_prefix='/api/conditionLevel')

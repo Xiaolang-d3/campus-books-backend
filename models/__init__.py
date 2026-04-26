@@ -171,6 +171,22 @@ class Order(db.Model):
 
 
 # =====================================================================
+# 钱包充值记录
+# =====================================================================
+class WalletRecharge(db.Model):
+    __tablename__ = 'wallet_recharge'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    recharge_no = db.Column(db.String(50), nullable=False, unique=True)
+    user_id = db.Column(db.BigInteger, nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    status = db.Column(db.String(50), default='待支付')
+    pay_type = db.Column(db.Integer, default=2)
+    addtime = db.Column(db.DateTime, default=datetime.now)
+    updatetime = db.Column(db.DateTime)
+
+
+# =====================================================================
 # 购物车表
 # =====================================================================
 class Cart(db.Model):

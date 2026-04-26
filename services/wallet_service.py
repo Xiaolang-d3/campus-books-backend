@@ -1,4 +1,5 @@
-from models import Order, User, db
+from models import Order, User, WalletRecharge, db
+from services.orders_service import OrderService
 
 
 class WalletService:
@@ -20,6 +21,12 @@ class WalletService:
         ).order_by(Order.addtime.desc(), Order.id.desc()).all()
 
         logs = []
+        recharges = WalletRecharge.query.filter_by(user_id=user.id).all()
+        for recharge in recharges:
+            recharge_log = WalletService._build_recharge_log(recharge)
+            if recharge_log:
+                logs.append(recharge_log)
+
         for order in orders:
             if order.user_id == user.id:
                 buyer_log = WalletService._build_buyer_log(order)
@@ -50,15 +57,10 @@ class WalletService:
         if order.status != '未支付':
             return False, '订单状态不支持支付'
 
-        total = float(order.total_amount or 0)
-        if float(user.balance or 0) < total:
-            return False, '余额不足，无法支付'
-
-        seller = User.query.get(order.seller_id) if order.seller_id else None
-        user.balance = float(user.balance or 0) - total
-        if seller:
-            seller.balance = float(seller.balance or 0) + total
-        order.status = '已支付'
+        ok, err = OrderService.mark_paid(order, pay_type=1, deduct_buyer_balance=True)
+        if not ok:
+            db.session.rollback()
+            return False, err
         db.session.commit()
         return True, None
 
@@ -105,6 +107,21 @@ class WalletService:
                 'addtime': order.addtime.isoformat(sep=' ', timespec='seconds') if order.addtime else '',
             }
         return None
+
+    @staticmethod
+    def _build_recharge_log(recharge):
+        if recharge.status != '已支付':
+            return None
+        return {
+            'id': f'recharge-{recharge.id}',
+            'type': '充值',
+            'amount': float(recharge.amount or 0),
+            'remark': '支付宝充值',
+            'orderid': recharge.recharge_no,
+            'addtime': recharge.updatetime.isoformat(sep=' ', timespec='seconds')
+            if recharge.updatetime
+            else recharge.addtime.isoformat(sep=' ', timespec='seconds') if recharge.addtime else '',
+        }
 
     @staticmethod
     def _build_seller_log(order):

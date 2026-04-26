@@ -227,6 +227,39 @@ class OrderService:
         return True, None
 
     @staticmethod
+    def mark_paid(order, pay_type=None, deduct_buyer_balance=True):
+        if not order:
+            return False, '订单不存在'
+        if order.status != '未支付':
+            return True, None
+
+        buyer = User.query.get(order.user_id)
+        if not buyer:
+            return False, '买家不存在'
+
+        total = float(order.total_amount or 0)
+        if deduct_buyer_balance and float(buyer.balance or 0) < total:
+            return False, '余额不足，无法支付'
+
+        book = Book.query.get(order.book_id) if order.book_id else None
+        if book:
+            quantity = int(order.quantity or 0)
+            if int(book.stock or 0) < quantity:
+                return False, f'库存不足，当前库存：{book.stock or 0}'
+            book.stock = int(book.stock or 0) - quantity
+
+        seller = User.query.get(order.seller_id) if order.seller_id else None
+        if deduct_buyer_balance:
+            buyer.balance = float(buyer.balance or 0) - total
+        if seller:
+            seller.balance = float(seller.balance or 0) + total
+
+        order.status = '已支付'
+        order.pay_type = pay_type
+        order.updatetime = datetime.now()
+        return True, None
+
+    @staticmethod
     def _apply_refund(order, old_status):
         book = Book.query.get(order.book_id) if order.book_id else None
         if book:
